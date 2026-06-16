@@ -15,6 +15,8 @@
   "tasks": {
     "check": "deno check lib/common/mod.ts lib/abc/atproto-repo/mod.ts lib/atproto-repo-deno/mod.ts lib/hono-factory-atproto-repo-deno/mod.ts",
     "test": "deno test --allow-net --allow-env --unstable-kv test/",
+    "test:sandbox": "deno test --allow-net --allow-env --allow-read --allow-write --unstable-kv --unstable-worker-options test/conformance/sandbox-conformance.test.ts",
+    "test:conformance": "deno test --allow-net --allow-env --unstable-kv test/conformance/",
     "fmt": "deno fmt"
   },
   "fmt": {

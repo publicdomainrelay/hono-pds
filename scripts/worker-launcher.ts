@@ -1,8 +1,8 @@
 // Worker — pure compute. Exposes app.fetch via message passing.
 // Zero network. Zero Deno.serve. Just init → fetch requests.
+/// <reference lib="deno.worker" />
 
 import { createFromEnv } from "../bundle.js";
-import type { RepoFactory } from "../bundle.js";
 
 interface RequestMessage {
   id: number;
@@ -12,7 +12,7 @@ interface RequestMessage {
   body: number[] | null;
 }
 
-let app: RepoFactory["app"] | null = null;
+let app: { fetch(req: Request): Response | Promise<Response> } | null = null;
 
 async function init() {
   const repo = await createFromEnv();
