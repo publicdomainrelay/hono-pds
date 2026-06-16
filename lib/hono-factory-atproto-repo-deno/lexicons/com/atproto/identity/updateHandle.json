@@ -1,0 +1,28 @@
+{
+  "lexicon": 1,
+  "id": "com.atproto.identity.updateHandle",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Update the user's handle.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["handle"],
+          "properties": {
+            "handle": {"type": "string", "description": "The new handle."}
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [],
+          "properties": {}
+        }
+      }
+    }
+  }
+}

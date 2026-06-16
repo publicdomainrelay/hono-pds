@@ -1,0 +1,37 @@
+{
+  "lexicon": 1,
+  "id": "com.atproto.server.createAccount",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Create an account on the server.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [],
+          "properties": {
+            "email": {"type": "string", "description": "The user's email."},
+            "handle": {"type": "string", "description": "The user's handle."},
+            "password": {"type": "string", "description": "The user's password."},
+            "inviteCode": {"type": "string", "description": "An invite code if the server requires one."},
+            "did": {"type": "string", "description": "Pre-specified DID for the account."}
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["accessJwt", "refreshJwt", "handle", "did"],
+          "properties": {
+            "accessJwt": {"type": "string"},
+            "refreshJwt": {"type": "string"},
+            "handle": {"type": "string"},
+            "did": {"type": "string"}
+          }
+        }
+      }
+    }
+  }
+}

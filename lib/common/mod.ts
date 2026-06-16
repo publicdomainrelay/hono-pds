@@ -35,3 +35,6 @@ export {
 } from "./tid.ts";
 
 export { encode, decode, cidLink, isCidLink, cidFromLink } from "./dag-cbor.ts";
+
+export { EventBus } from "./event-bus.ts";
+export type { Subscription, SubscribeHandler } from "./subscribe-types.ts";

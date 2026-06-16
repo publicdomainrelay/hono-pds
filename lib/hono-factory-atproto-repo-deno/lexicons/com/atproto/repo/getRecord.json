@@ -1,0 +1,31 @@
+{
+  "lexicon": 1,
+  "id": "com.atproto.repo.getRecord",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get a single record from the repository.",
+      "parameters": {
+        "type": "params",
+        "required": ["repo", "collection", "rkey"],
+        "properties": {
+          "repo": {"type": "string", "description": "The DID or handle of the repository."},
+          "collection": {"type": "string", "description": "The NSID of the collection."},
+          "rkey": {"type": "string", "description": "The record key."}
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["uri", "cid", "value"],
+          "properties": {
+            "uri": {"type": "string", "description": "The AT URI of the record."},
+            "cid": {"type": "string", "description": "The CID of the record."},
+            "value": {"type": "unknown", "description": "The record value."}
+          }
+        }
+      }
+    }
+  }
+}

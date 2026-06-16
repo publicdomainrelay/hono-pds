@@ -1,0 +1,30 @@
+{
+  "lexicon": 1,
+  "id": "com.atproto.server.describeServer",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get information about the server.",
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["did", "availableUserDomains"],
+          "properties": {
+            "did": {"type": "string", "description": "The server's DID."},
+            "version": {"type": "string", "description": "The server's version."},
+            "availableUserDomains": {"type": "array", "items": {"type": "string"}, "description": "List of available user domains for account creation."},
+            "inviteCodeRequired": {"type": "boolean", "description": "Whether an invite code is required to create an account."},
+            "links": {
+              "type": "object",
+              "properties": {
+                "privacyPolicy": {"type": "string"},
+                "termsOfService": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

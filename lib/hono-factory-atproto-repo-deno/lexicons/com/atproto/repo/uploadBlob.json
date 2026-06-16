@@ -1,0 +1,37 @@
+{
+  "lexicon": 1,
+  "id": "com.atproto.repo.uploadBlob",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Upload a blob to the repository's associated blob store.",
+      "input": {
+        "encoding": "*/*",
+        "schema": {
+          "type": "object",
+          "required": [],
+          "properties": {}
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["blob"],
+          "properties": {
+            "blob": {
+              "type": "object",
+              "required": ["$type", "ref", "mimeType", "size"],
+              "properties": {
+                "$type": {"type": "string", "const": "blob"},
+                "ref": {"type": "object", "required": ["$link"], "properties": {"$link": {"type": "string"}}},
+                "mimeType": {"type": "string"},
+                "size": {"type": "integer"}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

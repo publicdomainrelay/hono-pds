@@ -1,0 +1,31 @@
+{
+  "lexicon": 1,
+  "id": "com.atproto.repo.describeRepo",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get information about the repository.",
+      "parameters": {
+        "type": "params",
+        "required": ["repo"],
+        "properties": {
+          "repo": {"type": "string", "description": "The DID or handle of the repository."}
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["handle", "did", "didDoc", "collections", "handleIsCorrect"],
+          "properties": {
+            "handle": {"type": "string"},
+            "did": {"type": "string"},
+            "didDoc": {"type": "object"},
+            "collections": {"type": "array", "items": {"type": "string"}},
+            "handleIsCorrect": {"type": "boolean"}
+          }
+        }
+      }
+    }
+  }
+}

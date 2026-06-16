@@ -1,0 +1,48 @@
+{
+  "lexicon": 1,
+  "id": "com.atproto.sync.subscribeRepos",
+  "defs": {
+    "main": {
+      "type": "subscription",
+      "description": "Subscribe to repository updates.",
+      "parameters": {
+        "type": "params",
+        "required": [],
+        "properties": {
+          "cursor": {"type": "integer", "description": "The last known commit sequence counter."}
+        }
+      },
+      "message": {
+        "schema": {
+          "type": "union",
+          "refs": ["#commit", "#handle", "#migrate", "#tombstone"]
+        }
+      }
+    },
+    "commit": {
+      "type": "object",
+      "required": ["seq", "repo", "commit", "rev", "since", "blocks", "ops", "time"],
+      "properties": {
+        "seq": {"type": "integer", "description": "Sequential counter for the commit."},
+        "repo": {"type": "string", "description": "The DID of the repo."},
+        "commit": {"type": "object", "required": ["$link"], "properties": {"$link": {"type": "string"}}, "description": "CID of the commit root."},
+        "rev": {"type": "string", "description": "Revision string for the commit."},
+        "since": {"type": "string", "description": "The revision of the previous commit."},
+        "blocks": {"type": "object", "required": ["$bytes"], "properties": {"$bytes": {"type": "string"}}, "description": "CBOR-encoded blocks."},
+        "ops": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["action", "path", "cid"],
+            "properties": {
+              "action": {"type": "string"},
+              "path": {"type": "string"},
+              "cid": {"type": "object", "properties": {"$link": {"type": "string"}}}
+            }
+          }
+        },
+        "time": {"type": "string", "format": "datetime", "description": "Timestamp of the commit."}
+      }
+    }
+  }
+}
