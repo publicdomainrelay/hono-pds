@@ -55,7 +55,7 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
   });
 
   app.get("/xrpc/_health", (c) => {
-    return c.json({ status: "ok" });
+    return c.json({ version: "0.0.0" });
   });
 
   app.get("/xrpc/com.atproto.server.describeServer", (c) => {

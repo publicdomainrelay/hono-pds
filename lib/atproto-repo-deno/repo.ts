@@ -26,10 +26,8 @@ function commitToObj(commit: Omit<CommitData, "sig">): Record<string, unknown> {
     version: commit.version,
     data: cidLink(commit.data),
     rev: commit.rev,
+    prev: commit.prev !== null ? cidLink(commit.prev) : null,
   };
-  if (commit.prev !== null) {
-    obj.prev = cidLink(commit.prev);
-  }
   return obj;
 }
 
