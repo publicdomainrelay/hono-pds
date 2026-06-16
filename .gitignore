@@ -1,3 +1,4 @@
 .reference
 node_modules/
 deno.lock
+bundle.js

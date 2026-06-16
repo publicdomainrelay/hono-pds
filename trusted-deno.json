@@ -1,0 +1,16 @@
+{
+  "workspace": [
+    "lib/common",
+    "lib/abc/atproto-repo",
+    "lib/atproto-repo-deno",
+    "lib/hono-factory-atproto-repo-deno"
+  ],
+  "imports": {
+    "@hono/hono": "jsr:@hono/hono@^4",
+    "@atproto/crypto": "npm:@atproto/crypto@^0.5.0",
+    "@atproto/identity": "npm:@atproto/identity@^0.5.0",
+    "@std/assert": "jsr:@std/assert@^1"
+  },
+  "lock": "./deno.lock",
+  "nodeModulesDir": "auto"
+}
