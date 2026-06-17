@@ -11,6 +11,7 @@
     "@atproto/crypto": "npm:@atproto/crypto@^0.5.0",
     "@atproto/identity": "npm:@atproto/identity@^0.5.0",
     "@std/assert": "jsr:@std/assert@^1",
+    "@publicdomainrelay/logger": "../typescript-helpers/lib/logger/mod.ts"
   },
   "tasks": {
     "check": "deno check lib/common/mod.ts lib/abc/atproto-repo/mod.ts lib/atproto-repo-deno/mod.ts lib/hono-factory-atproto-repo-deno/mod.ts",

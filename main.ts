@@ -2,16 +2,19 @@ import { Secp256k1Keypair } from "@atproto/crypto";
 import { DenoKvStorage, signerFromKeypair } from "@publicdomainrelay/atproto-repo-deno";
 import { createRepoFactory } from "@publicdomainrelay/hono-factory-atproto-repo-deno";
 import type { RepoFactory } from "@publicdomainrelay/hono-factory-atproto-repo-deno";
+import { rawStructuredLogger, type Logger } from "@publicdomainrelay/logger";
 
-export async function createFromEnv(): Promise<RepoFactory> {
+const defaultLog = rawStructuredLogger("hono-pds");
+
+export async function createFromEnv(log?: Logger): Promise<RepoFactory> {
+  const lg = log ?? defaultLog;
   const keyHex = globalThis.Deno?.env.get("PDS_PRIVATE_KEY_HEX");
   let kp: Secp256k1Keypair;
   if (keyHex) {
     kp = await Secp256k1Keypair.import(keyHex);
   } else {
     kp = await Secp256k1Keypair.create();
-    console.error("Generated new keypair. DID:", kp.did());
-    // kp.export() not called — Web Crypto keys are non-extractable by default
+    lg("warn", "Generated new keypair", { did: kp.did() });
   }
 
   const signer = signerFromKeypair(kp);
@@ -23,7 +26,7 @@ export async function createFromEnv(): Promise<RepoFactory> {
       const parsed = JSON.parse(globalThis.Deno.env.get("PDS_DID_WEB_SERVICES")!);
       didWebServices.push(...parsed);
     } catch {
-      console.error("Failed to parse PDS_DID_WEB_SERVICES, ignoring");
+      lg("warn", "Failed to parse PDS_DID_WEB_SERVICES, ignoring");
     }
   }
 
@@ -41,11 +44,12 @@ export interface StartResult {
   port: number;
 }
 
-export async function start(port?: number): Promise<StartResult> {
-  const repo = await createFromEnv();
+export async function start(port?: number, log?: Logger): Promise<StartResult> {
+  const lg = log ?? defaultLog;
+  const repo = await createFromEnv(lg);
   const p = port ?? parseInt(globalThis.Deno?.env.get("PORT") ?? "2583");
   const server = Deno.serve({ port: p, hostname: "127.0.0.1" }, repo.app.fetch);
-  console.error(`PDS listening on :${p}`);
+  lg("info", "PDS listening", { port: p });
   return { app: repo.app, server, repo, port: p };
 }
 
