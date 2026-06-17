@@ -19,9 +19,11 @@
   },
   "tasks": {
     "check": "deno check lib/common/mod.ts lib/abc/atproto-repo/mod.ts lib/atproto-repo-deno/mod.ts lib/hono-factory-atproto-repo-deno/mod.ts",
-    "test": "deno test --allow-net --allow-env --unstable-kv test/",
+    "test": "deno test --allow-net --allow-env --allow-read --allow-write --allow-run --unstable-kv --unstable-worker-options --no-check test/",
     "test:sandbox": "deno test --allow-net --allow-env --allow-read --allow-write --unstable-kv --unstable-worker-options test/conformance/sandbox-conformance.test.ts",
     "test:conformance": "deno test --allow-net --allow-env --unstable-kv test/conformance/",
+    "test:integration": "deno test --allow-net --allow-env test/integration_test.ts",
+    "test:cli": "deno test --allow-run --allow-read test/cli_smoke_test.ts",
     "fmt": "deno fmt"
   },
   "compile": {
