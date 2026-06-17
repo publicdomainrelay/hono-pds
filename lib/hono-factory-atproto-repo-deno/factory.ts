@@ -1,5 +1,7 @@
 import { Hono } from "@hono/hono";
 import { cors } from "@hono/hono/cors";
+import { registerErrorMiddleware } from "@publicdomainrelay/hono-error-middleware";
+import { createLogger, type LoggerInterface } from "@publicdomainrelay/logger";
 import type { Storage, Signer, Did, Sequencer, RepoApi } from "@publicdomainrelay/atproto-repo-abc";
 import { XrpcError } from "@publicdomainrelay/atproto-repo-abc";
 import { Repo } from "@publicdomainrelay/atproto-repo-deno";
@@ -17,6 +19,7 @@ export interface RepoFactoryOptions {
   sequencer?: Sequencer;
   baseOrigin?: string;
   didWebServices?: Array<{ id: string; type: string }>;
+  log?: LoggerInterface;
 }
 
 export interface RepoFactory {
@@ -30,6 +33,7 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
   const repo = new Repo(opts.storage, opts.signer, opts.did);
   const did = opts.did ?? opts.signer.did();
   const sequencer = opts.sequencer ?? new FirehoseSequencer();
+  const log = opts.log ?? createLogger("pds");
 
   const app = new Hono();
 
@@ -40,19 +44,7 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     await next();
   });
 
-  app.onError((err, c) => {
-    if (err instanceof XrpcError) {
-      return new Response(JSON.stringify(err.toJSON()), {
-        status: err.status,
-        headers: { "content-type": "application/json" },
-      });
-    }
-    const msg = err instanceof Error ? err.message : String(err);
-    return new Response(JSON.stringify({ error: "InternalError", message: msg }), {
-      status: 500,
-      headers: { "content-type": "application/json" },
-    });
-  });
+  registerErrorMiddleware(app, log);
 
   app.get("/xrpc/_health", (c) => {
     return c.json({ version: "0.0.0" });

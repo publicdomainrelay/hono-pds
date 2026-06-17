@@ -1,11 +1,5 @@
-// PDS sandbox: runs bundle in a Worker with permission sandbox.
-// Exposes a transparent fetch() proxy — caller doesn't know it's a Worker.
-//
-// Usage:
-//   import { createPdsSandbox } from "./scripts/sandbox.ts";
-//   const pds = await createPdsSandbox();
-//   const res = await pds.fetch(new Request("at://did:key:.../xrpc/com.atproto.server.describeServer"));
-//   await pds.shutdown();
+import { createPersistentDenoWorker } from "@publicdomainrelay/sandbox-deno";
+import type { SandboxPermissions } from "@publicdomainrelay/sandbox-abc";
 
 export interface PdsSandbox {
   fetch: (req: Request) => Promise<Response>;
@@ -15,29 +9,28 @@ export interface PdsSandbox {
 export async function createPdsSandbox(): Promise<PdsSandbox> {
   const workerUrl = new URL("./worker-launcher.ts", import.meta.url);
 
-  const worker = new Worker(workerUrl, {
-    type: "module",
-    deno: {
-      permissions: {
-        // Zero network — Worker is pure compute
-        env: ["PDS_PRIVATE_KEY_HEX", "PDS_DID_WEB_SERVICES"],
-        read: [".kv"],
-        write: [".kv"],
-      },
-    },
-  });
+  const permissions: SandboxPermissions = {
+    env: ["PDS_PRIVATE_KEY_HEX", "PDS_DID_WEB_SERVICES"],
+    read: [".kv"],
+    write: [".kv"],
+  };
+
+  const pw = createPersistentDenoWorker(workerUrl, permissions);
 
   let nextId = 1;
   const pending = new Map<number, (res: Response) => void>();
-  let initialized = false;
 
   const initPromise = new Promise<void>((resolve, reject) => {
-    worker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as Record<string, unknown>;
+    pw.onMessage((msg: unknown) => {
+      const m = msg as Record<string, unknown>;
 
       if (m.type === "ready") {
-        initialized = true;
         resolve();
+        return;
+      }
+
+      if (m.type === "error") {
+        reject(new Error(m.message as string));
         return;
       }
 
@@ -52,21 +45,17 @@ export async function createPdsSandbox(): Promise<PdsSandbox> {
         }
         return;
       }
-    };
-
-    worker.onerror = (err) => {
-      reject(new Error(`worker error: ${err.message}`));
-    };
+    });
   });
 
-  worker.postMessage({ type: "init" });
+  pw.postMessage({ type: "init" });
   await initPromise;
 
   async function fetch(req: Request): Promise<Response> {
     const id = nextId++;
     const body = req.body ? Array.from(new Uint8Array(await req.arrayBuffer())) : null;
 
-    worker.postMessage({
+    pw.postMessage({
       type: "request",
       id,
       method: req.method,
@@ -81,9 +70,9 @@ export async function createPdsSandbox(): Promise<PdsSandbox> {
   }
 
   async function shutdown() {
-    worker.postMessage({ type: "shutdown" });
+    pw.postMessage({ type: "shutdown" });
     await new Promise((resolve) => setTimeout(resolve, 200));
-    worker.terminate();
+    await pw.shutdown();
   }
 
   return { fetch, shutdown };
