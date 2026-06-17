@@ -1,5 +1,5 @@
 import type {
-  Bytes, Cid, Did, Tid,
+  Bytes, Cid, Did, Tid, Hasher,
   Signer, Storage,
   WriteOp, CommitEvent, CommitOp,
   RepoApi,
@@ -62,6 +62,14 @@ async function cidForBytes(bytes: Bytes): Promise<Cid> {
   return cidFromDigest(new Uint8Array(digest));
 }
 
+const sha256: Hasher = async (data: Bytes): Promise<Bytes> => {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer,
+  );
+  return new Uint8Array(digest);
+};
+
 async function getMstRoot(store: Storage, commitCid: Cid): Promise<Cid | null> {
   const bytes = await store.get(commitCid);
   if (!bytes) return null;
@@ -90,7 +98,7 @@ export class Repo implements RepoApi {
     const rootCid = await getMstRoot(this.#store, head.commit);
     if (!rootCid) return { collections: [], head: head.rev };
 
-    const mst = createMst(this.#store, rootCid);
+    const mst = createMst(this.#store, sha256, rootCid);
     await mst.init();
     const collections = new Set<string>();
     for await (const { key } of mst.entries()) {
@@ -114,7 +122,7 @@ export class Repo implements RepoApi {
     const rootCid = await getMstRoot(this.#store, head.commit);
     if (!rootCid) return null;
 
-    const mst = createMst(this.#store, rootCid);
+    const mst = createMst(this.#store, sha256, rootCid);
     await mst.init();
     const key = `${collection}/${rkey}`;
     const valueCid = await mst.get(key);
@@ -138,7 +146,7 @@ export class Repo implements RepoApi {
     const rootCid = await getMstRoot(this.#store, head.commit);
     if (!rootCid) return { records: [] };
 
-    const mst = createMst(this.#store, rootCid);
+    const mst = createMst(this.#store, sha256, rootCid);
     await mst.init();
     const limit = opts?.limit ?? 50;
     const cursor = opts?.cursor ?? "";
@@ -174,7 +182,7 @@ export class Repo implements RepoApi {
 
     const prevRoot = prevCommit ? await getMstRoot(this.#store, prevCommit) : null;
 
-    const mst = createMst(this.#store, prevRoot);
+    const mst = createMst(this.#store, sha256, prevRoot);
     await mst.init();
 
     const ops: CommitOp[] = [];

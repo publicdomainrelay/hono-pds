@@ -1,6 +1,7 @@
 export type { Bytes, Cid, Tid } from "@publicdomainrelay/atproto-repo-common";
 export type {
   Did,
+  Hasher,
   Signer,
   Verifier,
   BlockStore,

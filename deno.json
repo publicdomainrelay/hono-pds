@@ -13,6 +13,7 @@
     "@std/assert": "jsr:@std/assert@^1",
     "@publicdomainrelay/hono-error-middleware": "../typescript-helpers/lib/hono-error-middleware/mod.ts",
     "@publicdomainrelay/logger": "../typescript-helpers/lib/logger/mod.ts",
+    "@publicdomainrelay/cli-args-env": "../typescript-helpers/lib/cli-args-env/mod.ts",
     "@publicdomainrelay/sandbox-abc": "../deno-worker-sandbox/lib/abc/sandbox/mod.ts",
     "@publicdomainrelay/sandbox-deno": "../deno-worker-sandbox/lib/sandbox-deno/mod.ts"
   },
@@ -22,6 +23,9 @@
     "test:sandbox": "deno test --allow-net --allow-env --allow-read --allow-write --unstable-kv --unstable-worker-options test/conformance/sandbox-conformance.test.ts",
     "test:conformance": "deno test --allow-net --allow-env --unstable-kv test/conformance/",
     "fmt": "deno fmt"
+  },
+  "compile": {
+    "include": ["cli-args-env.json", "config.json"]
   },
   "fmt": {
     "lineWidth": 100

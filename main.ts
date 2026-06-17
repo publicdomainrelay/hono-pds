@@ -1,8 +1,10 @@
+import { Command } from "@publicdomainrelay/cli-args-env";
 import { Secp256k1Keypair } from "@atproto/crypto";
 import { DenoKvStorage, signerFromKeypair } from "@publicdomainrelay/atproto-repo-deno";
 import { createRepoFactory } from "@publicdomainrelay/hono-factory-atproto-repo-deno";
 import type { RepoFactory } from "@publicdomainrelay/hono-factory-atproto-repo-deno";
 import { rawStructuredLogger, type Logger } from "@publicdomainrelay/logger";
+import cliArgsEnv from "./cli-args-env.json" with { type: "json" };
 
 const defaultLog = rawStructuredLogger("hono-pds");
 
@@ -47,12 +49,28 @@ export interface StartResult {
 export async function start(port?: number, log?: Logger): Promise<StartResult> {
   const lg = log ?? defaultLog;
   const repo = await createFromEnv(lg);
-  const p = port ?? parseInt(globalThis.Deno?.env.get("PORT") ?? "2583");
-  const server = Deno.serve({ port: p, hostname: "127.0.0.1" }, repo.app.fetch);
+  const p = port ?? 2583;
+  const server = Deno.serve(
+    { port: p, hostname: "127.0.0.1", onListen: () => lg("info", "listening", { port: p }) },
+    repo.app.fetch,
+  );
   lg("info", "PDS listening", { port: p });
   return { app: repo.app, server, repo, port: p };
 }
 
 if (import.meta.main) {
-  await start();
+  let runtimeConfig = null;
+  try {
+    const mod = await import("./config.json", { with: { type: "json" } });
+    runtimeConfig = mod.default;
+  } catch { /* optional */ }
+
+  const { options } = await new Command(
+    "CONFIG_PATH_HONO_PDS",
+    cliArgsEnv,
+    runtimeConfig,
+  ).resolve();
+
+  const lg = rawStructuredLogger("hono-pds");
+  await start(options.port as number | undefined, lg);
 }

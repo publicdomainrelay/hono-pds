@@ -5,7 +5,7 @@ import {
 } from "@publicdomainrelay/atproto-repo-common";
 import { cidFromDigest, SHA256_DIGEST_LEN } from "@publicdomainrelay/atproto-repo-common";
 import { bytesEqual } from "@publicdomainrelay/atproto-repo-common";
-import type { BlockStore } from "./contracts.ts";
+import type { BlockStore, Hasher } from "./contracts.ts";
 
 interface TreeNodeEntry {
   p: number;
@@ -19,15 +19,7 @@ interface TreeNodeData {
   e: TreeNodeEntry[];
 }
 
-async function sha256(data: Bytes): Promise<Bytes> {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    (data.buffer as ArrayBuffer).slice(data.byteOffset, data.byteOffset + data.byteLength),
-  );
-  return new Uint8Array(digest);
-}
-
-async function leadingZerosOnHash(key: string | Uint8Array): Promise<number> {
+async function leadingZerosOnHash(key: string | Uint8Array, sha256: Hasher): Promise<number> {
   const keyBytes = typeof key === "string"
     ? new TextEncoder().encode(key)
     : key;
@@ -110,14 +102,17 @@ class MstNode {
   layer: number;
   pointer: Cid;
   private _entries: NodeEntry[] | null;
+  #sha256: Hasher;
 
-  constructor(layer: number, pointer: Cid, entries: NodeEntry[] | null) {
+  constructor(layer: number, pointer: Cid, entries: NodeEntry[] | null, sha256Fn: Hasher) {
     this.layer = layer;
     this.pointer = pointer;
     this._entries = entries;
+    this.#sha256 = sha256Fn;
   }
 
   static async create(
+    sha256Fn: Hasher,
     entries: NodeEntry[] = [],
     layer = 0,
   ): Promise<MstNode> {
@@ -127,8 +122,8 @@ class MstNode {
       }
     }
     const data = serializeNodeData(entries);
-    const cid = await cidForNodeData(data);
-    return new MstNode(layer, cid, entries);
+    const cid = await cidForNodeData(data, sha256Fn);
+    return new MstNode(layer, cid, entries, sha256Fn);
   }
 
   async getEntries(): Promise<NodeEntry[]> {
@@ -137,7 +132,7 @@ class MstNode {
   }
 
   private newTree(entries: NodeEntry[]): MstNode {
-    return new MstNode(this.layer, EMPTY_NODE_CID_PLACEHOLDER, entries);
+    return new MstNode(this.layer, EMPTY_NODE_CID_PLACEHOLDER, entries, this.#sha256);
   }
 
   async atIndex(index: number): Promise<NodeEntry | null> {
@@ -184,11 +179,11 @@ class MstNode {
   }
 
   async createChild(): Promise<MstNode> {
-    return MstNode.create([], this.layer - 1);
+    return MstNode.create(this.#sha256, [], this.layer - 1);
   }
 
   async createParent(): Promise<MstNode> {
-    return MstNode.create([this], this.layer + 1);
+    return MstNode.create(this.#sha256, [this], this.layer + 1);
   }
 
   async splitAround(key: string): Promise<[MstNode | null, MstNode | null]> {
@@ -242,7 +237,7 @@ class MstNode {
 
   async add(key: string, value: Cid, knownZeros?: number): Promise<MstNode> {
     ensureValidMstKey(key);
-    const keyZeros = knownZeros ?? (await leadingZerosOnHash(key));
+    const keyZeros = knownZeros ?? (await leadingZerosOnHash(key, this.#sha256));
     const layer = await this.getLayer();
     const newLeaf = new LeafNode(key, value);
 
@@ -288,7 +283,7 @@ class MstNode {
       if (left) updated.push(left);
       updated.push(new LeafNode(key, value));
       if (right) updated.push(right);
-      return MstNode.create(updated, keyZeros);
+      return MstNode.create(this.#sha256, updated, keyZeros);
     }
   }
 
@@ -378,7 +373,7 @@ class MstNode {
     }
     const data = serializeNodeData(entries);
     const bytes = encodeNodeData(data);
-    const cid = await cidForNodeData(data);
+    const cid = await cidForNodeData(data, this.#sha256);
     this.pointer = cid;
     return { cid, bytes };
   }
@@ -522,7 +517,7 @@ function decodeNodeData(bytes: Bytes): TreeNodeData {
   return { l, e: entries };
 }
 
-async function cidForNodeData(data: TreeNodeData): Promise<Cid> {
+async function cidForNodeData(data: TreeNodeData, sha256: Hasher): Promise<Cid> {
   const bytes = encodeNodeData(data);
   const digest = await sha256(bytes);
   return cidFromDigest(digest);
@@ -533,12 +528,14 @@ export class Mst {
   #root: Cid | null;
   #tree: MstNode | null;
   #all: Map<string, Cid>;
+  #sha256: Hasher;
 
-  constructor(store: BlockStore, root: Cid | null) {
+  constructor(store: BlockStore, root: Cid | null, sha256Fn: Hasher) {
     this.#store = store;
     this.#root = root;
     this.#tree = null;
     this.#all = new Map();
+    this.#sha256 = sha256Fn;
   }
 
   get root(): Cid | null {
@@ -551,10 +548,10 @@ export class Mst {
 
   async init(): Promise<void> {
     if (this.#root === null) {
-      this.#tree = await MstNode.create([], 0);
+      this.#tree = await MstNode.create(this.#sha256, [], 0);
       return;
     }
-    this.#tree = await loadTree(this.#store, this.#root);
+    this.#tree = await loadTree(this.#store, this.#root, this.#sha256);
     for await (const leaf of this.#tree.walkLeaves()) {
       this.#all.set(leaf.key, leaf.value);
     }
@@ -569,7 +566,7 @@ export class Mst {
 
   async set(key: string, value: Cid): Promise<Cid> {
     if (!this.#tree) {
-      this.#tree = await MstNode.create([], 0);
+      this.#tree = await MstNode.create(this.#sha256, [], 0);
     }
     const exists = this.#all.has(key);
     if (exists) {
@@ -629,22 +626,23 @@ export class Mst {
   }
 }
 
-async function loadTree(store: BlockStore, cid: Cid): Promise<MstNode> {
+async function loadTree(store: BlockStore, cid: Cid, sha256Fn: Hasher): Promise<MstNode> {
   const bytes = await store.get(cid);
   if (!bytes) throw new Error(`MST node not found: ${cid}`);
   const data = decodeNodeData(bytes);
-  return deserializeNodeData(store, data);
+  return deserializeNodeData(store, data, sha256Fn);
 }
 
 async function deserializeNodeData(
   store: BlockStore,
   data: TreeNodeData,
+  sha256Fn: Hasher,
   layer?: number,
 ): Promise<MstNode> {
   const entries: NodeEntry[] = [];
 
   if (data.l !== null) {
-    const child = await loadTree(store, data.l);
+    const child = await loadTree(store, data.l, sha256Fn);
     entries.push(child);
   }
 
@@ -656,7 +654,7 @@ async function deserializeNodeData(
     entries.push(new LeafNode(key, entry.v));
     lastKey = key;
     if (entry.t !== null) {
-      const child = await loadTree(store, entry.t);
+      const child = await loadTree(store, entry.t, sha256Fn);
       entries.push(child);
     }
   }
@@ -664,13 +662,13 @@ async function deserializeNodeData(
   let resolvedLayer = layer ?? 0;
   for (const e of entries) {
     if (e instanceof LeafNode) {
-      resolvedLayer = await leadingZerosOnHash(e.key);
+      resolvedLayer = await leadingZerosOnHash(e.key, sha256Fn);
       break;
     }
   }
 
-  const cid = await cidForNodeData(data);
-  return new MstNode(resolvedLayer, cid, entries);
+  const cid = await cidForNodeData(data, sha256Fn);
+  return new MstNode(resolvedLayer, cid, entries, sha256Fn);
 }
 
 export async function diff(
@@ -700,6 +698,6 @@ export async function diff(
   return [...newCids].filter((c) => !oldCids.has(c));
 }
 
-export function createMst(store: BlockStore, root?: Cid | null): Mst {
-  return new Mst(store, root ?? null);
+export function createMst(store: BlockStore, sha256Fn: Hasher, root?: Cid | null): Mst {
+  return new Mst(store, root ?? null, sha256Fn);
 }

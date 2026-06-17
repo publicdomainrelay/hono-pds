@@ -13,6 +13,8 @@ export interface Verifier {
   verify(did: Did, bytes: Bytes, sig: Bytes): Promise<boolean>;
 }
 
+export type Hasher = (data: Bytes) => Promise<Bytes>;
+
 export interface BlockStore {
   get(cid: Cid): Promise<Bytes | null>;
   put(cid: Cid, bytes: Bytes): Promise<void>;

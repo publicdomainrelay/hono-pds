@@ -1,7 +1,16 @@
 import { assertEquals } from "@std/assert";
 import { createMst } from "@publicdomainrelay/atproto-repo-abc";
+import type { Hasher, Bytes } from "@publicdomainrelay/atproto-repo-abc";
 import { MemoryStorage } from "@publicdomainrelay/atproto-repo-deno";
 import { cidFromDigest } from "@publicdomainrelay/atproto-repo-common";
+
+const sha256: Hasher = async (data: Bytes): Promise<Bytes> => {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer,
+  );
+  return new Uint8Array(digest);
+};
 
 const makeCid = (fill: number): string => {
   const digest = new Uint8Array(32).fill(fill);
@@ -10,7 +19,7 @@ const makeCid = (fill: number): string => {
 
 Deno.test("MST create empty node", async () => {
   const store = new MemoryStorage();
-  const mst = createMst(store);
+  const mst = createMst(store, sha256);
   await mst.init();
   assertEquals(mst.root, null);
   assertEquals(mst.size, 0);
@@ -18,7 +27,7 @@ Deno.test("MST create empty node", async () => {
 
 Deno.test("MST insert and get records", async () => {
   const store = new MemoryStorage();
-  const mst = createMst(store);
+  const mst = createMst(store, sha256);
   await mst.init();
   const cid = makeCid(1);
   await mst.set("com.example.record/abc123", cid);
@@ -28,7 +37,7 @@ Deno.test("MST insert and get records", async () => {
 
 Deno.test("MST update records", async () => {
   const store = new MemoryStorage();
-  const mst = createMst(store);
+  const mst = createMst(store, sha256);
   await mst.init();
   const cidA = makeCid(1);
   await mst.set("com.example.record/abc123", cidA);
@@ -40,7 +49,7 @@ Deno.test("MST update records", async () => {
 
 Deno.test("MST delete records", async () => {
   const store = new MemoryStorage();
-  const mst = createMst(store);
+  const mst = createMst(store, sha256);
   await mst.init();
   const cid = makeCid(3);
   await mst.set("com.example.record/abc123", cid);
@@ -51,7 +60,7 @@ Deno.test("MST delete records", async () => {
 
 Deno.test("MST list entries", async () => {
   const store = new MemoryStorage();
-  const mst = createMst(store);
+  const mst = createMst(store, sha256);
   await mst.init();
   await mst.set("com.example.record/a", makeCid(1));
   await mst.set("com.example.record/b", makeCid(2));
@@ -65,8 +74,8 @@ Deno.test("MST list entries", async () => {
 Deno.test("MST root CID determinism", async () => {
   const storeA = new MemoryStorage();
   const storeB = new MemoryStorage();
-  const mstA = createMst(storeA);
-  const mstB = createMst(storeB);
+  const mstA = createMst(storeA, sha256);
+  const mstB = createMst(storeB, sha256);
   await mstA.init();
   await mstB.init();
   const cid = makeCid(42);
