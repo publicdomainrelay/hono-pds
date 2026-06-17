@@ -1,7 +1,7 @@
 import { assertEquals, assertExists, assertRejects, assertGreater } from "@std/assert";
 import { createRepoFactory } from "@publicdomainrelay/hono-factory-atproto-repo-deno";
 import { MemoryStorage } from "@publicdomainrelay/atproto-repo-deno";
-import { encode as cborEncode, decode as cborDecode } from "@publicdomainrelay/common";
+import { encode as cborEncode, decode as cborDecode } from "@publicdomainrelay/atproto-repo-common";
 import type { Signer, Bytes, Did, SequencedFrame } from "@publicdomainrelay/atproto-repo-abc";
 
 class MockSigner implements Signer {

@@ -2,7 +2,7 @@ import type { Hono } from "@hono/hono";
 import type { RepoApi, Storage, Did } from "@publicdomainrelay/atproto-repo-abc";
 import { XrpcError } from "@publicdomainrelay/atproto-repo-abc";
 import { exportCar } from "@publicdomainrelay/atproto-repo-deno";
-import { decode as cborDecode } from "@publicdomainrelay/common";
+import { decode as cborDecode } from "@publicdomainrelay/atproto-repo-common";
 
 export interface SyncHandlerOptions {
   repo: RepoApi;

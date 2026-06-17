@@ -1,7 +1,7 @@
 import type { Bytes, Cid, Storage } from "@publicdomainrelay/atproto-repo-abc";
-import { encode as cborEncode, decode as cborDecode } from "@publicdomainrelay/common";
-import { cidFromDigest } from "@publicdomainrelay/common";
-import { base32Decode, base32Encode, concat } from "@publicdomainrelay/common";
+import { encode as cborEncode, decode as cborDecode } from "@publicdomainrelay/atproto-repo-common";
+import { cidFromDigest } from "@publicdomainrelay/atproto-repo-common";
+import { base32Decode, base32Encode, concat } from "@publicdomainrelay/atproto-repo-common";
 
 function varintEncode(n: number): Bytes {
   const out: number[] = [];

@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { createMst } from "@publicdomainrelay/atproto-repo-abc";
 import { MemoryStorage } from "@publicdomainrelay/atproto-repo-deno";
-import { cidFromDigest } from "@publicdomainrelay/common";
+import { cidFromDigest } from "@publicdomainrelay/atproto-repo-common";
 
 const makeCid = (fill: number): string => {
   const digest = new Uint8Array(32).fill(fill);

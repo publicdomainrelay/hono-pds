@@ -5,11 +5,11 @@ import type {
   RepoApi,
 } from "@publicdomainrelay/atproto-repo-abc";
 import { XrpcError } from "@publicdomainrelay/atproto-repo-abc";
-import { encode as cborEncode, decode as cborDecode, cidLink } from "@publicdomainrelay/common";
-import { cidFromDigest } from "@publicdomainrelay/common";
-import { nextTid } from "@publicdomainrelay/common";
+import { encode as cborEncode, decode as cborDecode, cidLink } from "@publicdomainrelay/atproto-repo-common";
+import { cidFromDigest } from "@publicdomainrelay/atproto-repo-common";
+import { nextTid } from "@publicdomainrelay/atproto-repo-common";
 import { createMst, diff } from "@publicdomainrelay/atproto-repo-abc";
-import { concat } from "@publicdomainrelay/common";
+import { concat } from "@publicdomainrelay/atproto-repo-common";
 
 interface CommitData {
   did: Did;

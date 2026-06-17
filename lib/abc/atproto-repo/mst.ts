@@ -1,10 +1,10 @@
-import type { Bytes, Cid } from "@publicdomainrelay/common";
+import type { Bytes, Cid } from "@publicdomainrelay/atproto-repo-common";
 import {
   encode as cborEncode,
   decode as cborDecode,
-} from "@publicdomainrelay/common";
-import { cidFromDigest, SHA256_DIGEST_LEN } from "@publicdomainrelay/common";
-import { bytesEqual } from "@publicdomainrelay/common";
+} from "@publicdomainrelay/atproto-repo-common";
+import { cidFromDigest, SHA256_DIGEST_LEN } from "@publicdomainrelay/atproto-repo-common";
+import { bytesEqual } from "@publicdomainrelay/atproto-repo-common";
 import type { BlockStore } from "./contracts.ts";
 
 interface TreeNodeEntry {

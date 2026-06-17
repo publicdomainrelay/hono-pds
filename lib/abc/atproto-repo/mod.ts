@@ -1,4 +1,4 @@
-export type { Bytes, Cid, Tid } from "@publicdomainrelay/common";
+export type { Bytes, Cid, Tid } from "@publicdomainrelay/atproto-repo-common";
 export type {
   Did,
   Signer,

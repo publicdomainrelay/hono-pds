@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { encode, decode, cidLink, isCidLink, cidFromLink, cidFromDigest } from "@publicdomainrelay/common";
+import { encode, decode, cidLink, isCidLink, cidFromLink, cidFromDigest } from "@publicdomainrelay/atproto-repo-common";
 
 Deno.test("encode/decode integer round-trip", () => {
   assertEquals(decode(encode(42)), 42);

@@ -5,7 +5,7 @@ import {
   base32Encode, base32Decode,
   utf8Encode, utf8Decode,
   concat, bytesEqual,
-} from "@publicdomainrelay/common";
+} from "@publicdomainrelay/atproto-repo-common";
 
 Deno.test("hexEncode/hexDecode round-trip", () => {
   const input = new Uint8Array([0xde, 0xad, 0xbe, 0xef]);

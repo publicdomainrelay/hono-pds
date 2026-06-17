@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { nextTid, parseTid, isValidTid, resetClockId } from "@publicdomainrelay/common";
+import { nextTid, parseTid, isValidTid, resetClockId } from "@publicdomainrelay/atproto-repo-common";
 
 Deno.test("nextTid produces 13-char strings", () => {
   const tid = nextTid();

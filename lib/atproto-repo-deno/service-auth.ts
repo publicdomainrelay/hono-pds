@@ -1,5 +1,5 @@
 import type { Bytes, Did, Signer } from "@publicdomainrelay/atproto-repo-abc";
-import { base64Encode, utf8Encode } from "@publicdomainrelay/common";
+import { base64Encode, utf8Encode } from "@publicdomainrelay/atproto-repo-common";
 
 function b64url(bytes: Bytes): string {
   return base64Encode(bytes).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");

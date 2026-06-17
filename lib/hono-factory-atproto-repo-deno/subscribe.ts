@@ -1,5 +1,5 @@
 import type { Sequencer } from "@publicdomainrelay/atproto-repo-abc";
-import type { SubscribeHandler } from "@publicdomainrelay/common";
+import type { SubscribeHandler } from "@publicdomainrelay/atproto-repo-common";
 
 export function createSubscribeHandler(sequencer: Sequencer): SubscribeHandler {
   return (sub, emit) => {

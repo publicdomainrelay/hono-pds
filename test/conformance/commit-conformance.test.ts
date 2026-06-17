@@ -1,7 +1,7 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { createRepoFactory } from "@publicdomainrelay/hono-factory-atproto-repo-deno";
 import { MemoryStorage } from "@publicdomainrelay/atproto-repo-deno";
-import { encode as cborEncode, decode as cborDecode, cidFromDigest, cidDigest } from "@publicdomainrelay/common";
+import { encode as cborEncode, decode as cborDecode, cidFromDigest, cidDigest } from "@publicdomainrelay/atproto-repo-common";
 import { createVerifier, signerFromKeypair } from "@publicdomainrelay/atproto-repo-deno";
 import type { Signer, Bytes, Did } from "@publicdomainrelay/atproto-repo-abc";
 import { Secp256k1Keypair } from "@atproto/crypto";
@@ -50,7 +50,7 @@ Deno.test("[conformance] commit CID is reproducible from stored bytes", async ()
       commitBytes.buffer.slice(commitBytes.byteOffset, commitBytes.byteOffset + commitBytes.byteLength) as ArrayBuffer,
     ),
   );
-  const { cidFromDigest } = await import("@publicdomainrelay/common");
+  const { cidFromDigest } = await import("@publicdomainrelay/atproto-repo-common");
   const recomputedCid = cidFromDigest(digest);
   assertEquals(recomputedCid, evt.commit);
 });

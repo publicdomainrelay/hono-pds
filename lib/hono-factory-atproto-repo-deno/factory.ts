@@ -4,7 +4,7 @@ import type { Storage, Signer, Did, Sequencer, RepoApi } from "@publicdomainrela
 import { XrpcError } from "@publicdomainrelay/atproto-repo-abc";
 import { Repo } from "@publicdomainrelay/atproto-repo-deno";
 import { signServiceAuth } from "@publicdomainrelay/atproto-repo-deno";
-import type { SubscribeHandler } from "@publicdomainrelay/common";
+import type { SubscribeHandler } from "@publicdomainrelay/atproto-repo-common";
 import { mountRepoRoutes } from "./repo-handlers.ts";
 import { mountSyncRoutes } from "./sync-handlers.ts";
 import { FirehoseSequencer } from "./sequencer.ts";

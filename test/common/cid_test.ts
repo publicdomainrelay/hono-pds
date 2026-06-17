@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { cidFromDigest, cidToBytes, cidDigest, isValidCid, cidEquals } from "@publicdomainrelay/common";
+import { cidFromDigest, cidToBytes, cidDigest, isValidCid, cidEquals } from "@publicdomainrelay/atproto-repo-common";
 
 const EMPTY_SHA256 = new Uint8Array([
   0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14,

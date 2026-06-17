@@ -1,7 +1,7 @@
 import type { Context, Hono } from "@hono/hono";
 import type { RepoApi, Did, WriteOp } from "@publicdomainrelay/atproto-repo-abc";
 import { XrpcError } from "@publicdomainrelay/atproto-repo-abc";
-import { nextTid } from "@publicdomainrelay/common";
+import { nextTid } from "@publicdomainrelay/atproto-repo-common";
 
 function jsonError(err: unknown): Response {
   if (err instanceof XrpcError) {
