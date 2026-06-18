@@ -1,4 +1,6 @@
 {
+  "name": "@publicdomainrelay/hono-pds",
+  "exports": "./main.ts",
   "workspace": [
     "lib/common",
     "lib/abc/atproto-repo",
