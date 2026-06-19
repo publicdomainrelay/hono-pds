@@ -1,5 +1,5 @@
 import type { CommitEvent, Sequencer, SequencedFrame } from "@publicdomainrelay/atproto-repo-abc";
-import { EventBus } from "@publicdomainrelay/atproto-repo-common";
+import { EventBus } from "@publicdomainrelay/event-bus";
 
 const MAX_BACKLOG = 10000;
 

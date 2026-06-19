@@ -8,12 +8,17 @@ import cliArgsEnv from "./cli-args-env.json" with { type: "json" };
 
 const defaultLog = rawStructuredLogger("hono-pds");
 
-export async function createFromEnv(log?: Logger): Promise<RepoFactory> {
-  const lg = log ?? defaultLog;
-  const keyHex = globalThis.Deno?.env.get("PDS_PRIVATE_KEY_HEX");
+export interface CreateFromEnvOptions {
+  keyHex?: string;
+  didWebServicesStr?: string;
+  log?: Logger;
+}
+
+export async function createFromEnv(opts?: CreateFromEnvOptions): Promise<RepoFactory> {
+  const lg = opts?.log ?? defaultLog;
   let kp: Secp256k1Keypair;
-  if (keyHex) {
-    kp = await Secp256k1Keypair.import(keyHex);
+  if (opts?.keyHex) {
+    kp = await Secp256k1Keypair.import(opts.keyHex);
   } else {
     kp = await Secp256k1Keypair.create();
     lg("warn", "Generated new keypair", { did: kp.did() });
@@ -23,12 +28,12 @@ export async function createFromEnv(log?: Logger): Promise<RepoFactory> {
   const storage = await DenoKvStorage.create();
 
   const didWebServices: Array<{ id: string; type: string }> = [];
-  if (globalThis.Deno?.env.get("PDS_DID_WEB_SERVICES")) {
+  if (opts?.didWebServicesStr) {
     try {
-      const parsed = JSON.parse(globalThis.Deno.env.get("PDS_DID_WEB_SERVICES")!);
+      const parsed = JSON.parse(opts.didWebServicesStr);
       didWebServices.push(...parsed);
     } catch {
-      lg("warn", "Failed to parse PDS_DID_WEB_SERVICES, ignoring");
+      lg("warn", "Failed to parse did-web-services JSON, ignoring");
     }
   }
 
@@ -46,16 +51,22 @@ export interface StartResult {
   port: number;
 }
 
-export async function start(port?: number, log?: Logger): Promise<StartResult> {
-  const lg = log ?? defaultLog;
-  const repo = await createFromEnv(lg);
-  const p = port ?? 2583;
+export interface StartOptions {
+  port: number;
+  hostname: string;
+  keyHex?: string;
+  didWebServicesStr?: string;
+  log?: Logger;
+}
+
+export async function start(options: StartOptions): Promise<StartResult> {
+  const lg = options.log ?? defaultLog;
+  const repo = await createFromEnv(options);
   const server = Deno.serve(
-    { port: p, hostname: "127.0.0.1", onListen: () => lg("info", "listening", { port: p }) },
+    { port: options.port, hostname: options.hostname, onListen: () => lg("info", "listening", { port: options.port }) },
     repo.app.fetch,
   );
-  lg("info", "PDS listening", { port: p });
-  return { app: repo.app, server, repo, port: p };
+  return { app: repo.app, server, repo, port: options.port };
 }
 
 if (import.meta.main) {
@@ -72,5 +83,11 @@ if (import.meta.main) {
   ).resolve();
 
   const lg = rawStructuredLogger("hono-pds");
-  await start(options.port as number | undefined, lg);
+  await start({
+    port: options.port as number,
+    hostname: options.hostname as string,
+    keyHex: options.privateKeyHex as string | undefined,
+    didWebServicesStr: options.didWebServices as string | undefined,
+    log: lg,
+  });
 }

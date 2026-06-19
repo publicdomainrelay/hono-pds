@@ -1,6 +1,4 @@
 {
-  "name": "@publicdomainrelay/hono-pds",
-  "exports": "./main.ts",
   "workspace": [
     "lib/common",
     "lib/abc/atproto-repo",
@@ -17,6 +15,7 @@
     "@publicdomainrelay/logger": "../typescript-helpers/lib/logger/mod.ts",
     "@publicdomainrelay/cli-args-env": "../typescript-helpers/lib/cli-args-env/mod.ts",
     "@publicdomainrelay/sandbox-abc": "../deno-worker-sandbox/lib/abc/sandbox/mod.ts",
+    "@publicdomainrelay/event-bus": "../typescript-helpers/lib/event-bus/mod.ts",
     "@publicdomainrelay/sandbox-deno": "../deno-worker-sandbox/lib/sandbox-deno/mod.ts"
   },
   "tasks": {

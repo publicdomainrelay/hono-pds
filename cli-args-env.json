@@ -13,6 +13,16 @@
       "description": "Hostname to bind to",
       "env": "HOSTNAME",
       "default": "127.0.0.1"
+    },
+    "private-key-hex": {
+      "type": "string",
+      "description": "PDS private key as hex string",
+      "env": "PDS_PRIVATE_KEY_HEX"
+    },
+    "did-web-services": {
+      "type": "string",
+      "description": "DID web services JSON",
+      "env": "PDS_DID_WEB_SERVICES"
     }
   }
 }
