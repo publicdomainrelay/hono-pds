@@ -2,7 +2,7 @@
 // Zero network. Zero Deno.serve. Just init → fetch requests.
 /// <reference lib="deno.worker" />
 
-import { createFromEnv } from "../bundle.js";
+import { createFromEnv } from "../main.ts";
 
 interface RequestMessage {
   id: number;

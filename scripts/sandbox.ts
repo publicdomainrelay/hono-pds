@@ -10,7 +10,7 @@ export async function createPdsSandbox(): Promise<PdsSandbox> {
   const workerUrl = new URL("./worker-launcher.ts", import.meta.url);
 
   const permissions: SandboxPermissions = {
-    env: ["PDS_PRIVATE_KEY_HEX", "PDS_DID_WEB_SERVICES"],
+    env: ["PDS_PRIVATE_KEY_HEX", "PDS_DID_WEB_SERVICES", "MIN_LOG_LEVEL"],
     read: [".kv"],
     write: [".kv"],
   };
