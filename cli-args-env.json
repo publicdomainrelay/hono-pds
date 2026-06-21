@@ -23,6 +23,16 @@
       "type": "string",
       "description": "DID web services JSON",
       "env": "PDS_DID_WEB_SERVICES"
+    },
+    "public-hostname": {
+      "type": "string",
+      "description": "Public hostname for requestCrawl (may differ from bind hostname)",
+      "env": "PDS_PUBLIC_HOSTNAME"
+    },
+    "crawlers": {
+      "type": "string",
+      "description": "Comma-separated relay URLs to notify on writes",
+      "env": "PDS_CRAWLERS"
     }
   }
 }

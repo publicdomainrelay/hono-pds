@@ -19,6 +19,8 @@ export interface RepoFactoryOptions {
   sequencer?: Sequencer;
   baseOrigin?: string;
   didWebServices?: Array<{ id: string; type: string }>;
+  publicHostname?: string;
+  crawlers?: string[];
   log?: LoggerInterface;
 }
 
@@ -101,6 +103,8 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     return c.json({ token });
   });
 
+  const requestCrawlDebounce = new Map<string, number>();
+
   const wiredRepo: RepoApi = {
     describe: (d) => repo.describe(d),
     getRecord: (d, c, r) => repo.getRecord(d, c, r),
@@ -108,6 +112,20 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     async applyWrites(d, writes) {
       const evt = await repo.applyWrites(d, writes);
       sequencer.append(evt);
+      if (opts.crawlers && opts.publicHostname) {
+        const now = Date.now();
+        for (const rawUrl of opts.crawlers) {
+          const last = requestCrawlDebounce.get(rawUrl) ?? 0;
+          if (now - last < 1000) continue;
+          requestCrawlDebounce.set(rawUrl, now);
+          const url = new URL("/xrpc/com.atproto.sync.requestCrawl", rawUrl);
+          fetch(url, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ hostname: opts.publicHostname }),
+          }).catch(() => {});
+        }
+      }
       return evt;
     },
   };

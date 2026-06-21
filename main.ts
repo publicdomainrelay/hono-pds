@@ -11,6 +11,8 @@ const defaultLog = rawStructuredLogger("hono-pds");
 export interface CreateFromEnvOptions {
   keyHex?: string;
   didWebServicesStr?: string;
+  publicHostname?: string;
+  crawlersStr?: string;
   log?: Logger;
 }
 
@@ -37,10 +39,16 @@ export async function createFromEnv(opts?: CreateFromEnvOptions): Promise<RepoFa
     }
   }
 
+  const crawlers = opts?.crawlersStr
+    ? [...new Set(opts.crawlersStr.split(",").map((s) => s.trim()).filter(Boolean))]
+    : undefined;
+
   return createRepoFactory({
     storage,
     signer,
     didWebServices: didWebServices.length > 0 ? didWebServices : undefined,
+    publicHostname: opts?.publicHostname,
+    crawlers,
   });
 }
 
@@ -56,6 +64,8 @@ export interface StartOptions {
   hostname: string;
   keyHex?: string;
   didWebServicesStr?: string;
+  publicHostname?: string;
+  crawlersStr?: string;
   log?: Logger;
 }
 
@@ -88,6 +98,8 @@ if (import.meta.main) {
     hostname: options.hostname as string,
     keyHex: options.privateKeyHex as string | undefined,
     didWebServicesStr: options.didWebServices as string | undefined,
+    publicHostname: options.publicHostname as string | undefined,
+    crawlersStr: options.crawlers as string | undefined,
     log: lg,
   });
 }
