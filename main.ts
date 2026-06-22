@@ -3,7 +3,8 @@ import { Secp256k1Keypair } from "@atproto/crypto";
 import { DenoKvStorage, signerFromKeypair } from "@publicdomainrelay/atproto-repo-deno";
 import { createRepoFactory } from "@publicdomainrelay/hono-factory-atproto-repo-deno";
 import type { RepoFactory } from "@publicdomainrelay/hono-factory-atproto-repo-deno";
-import { rawStructuredLogger, type Logger } from "@publicdomainrelay/logger";
+import { createLogger, rawStructuredLogger, type Logger } from "@publicdomainrelay/logger";
+import { createServe } from "@publicdomainrelay/serve";
 import cliArgsEnv from "./cli-args-env.json" with { type: "json" };
 
 const defaultLog = rawStructuredLogger("hono-pds");
@@ -92,14 +93,27 @@ if (import.meta.main) {
     runtimeConfig,
   ).resolve();
 
-  const lg = rawStructuredLogger("hono-pds");
-  await start({
-    port: options.port as number,
-    hostname: options.hostname as string,
+  const logger = createLogger({ serviceName: "hono-pds" });
+  const repo = await createFromEnv({
     keyHex: options.privateKeyHex as string | undefined,
     didWebServicesStr: options.didWebServices as string | undefined,
     publicHostname: options.publicHostname as string | undefined,
     crawlersStr: options.crawlers as string | undefined,
-    log: lg,
+    log: (lvl, msg, meta) => logger[lvl as "info" | "warn" | "error" | "debug"]?.(msg, meta),
   });
+
+  const serve = createServe({
+    logger,
+    tcp: { addr: options.hostname as string, port: options.port as number },
+  });
+  serve.app.route("/", repo.app as never);
+
+  function shutdown() {
+    serve.shutdown();
+    Deno.exit();
+  }
+  Deno.addSignalListener("SIGINT", shutdown);
+  Deno.addSignalListener("SIGTERM", shutdown);
+
+  await serve.beginServe();
 }

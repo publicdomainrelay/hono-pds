@@ -13,6 +13,7 @@
     "@std/assert": "jsr:@std/assert@^1",
     "@publicdomainrelay/hono-error-middleware": "../typescript-helpers/lib/hono-error-middleware/mod.ts",
     "@publicdomainrelay/logger": "../typescript-helpers/lib/logger/mod.ts",
+    "@publicdomainrelay/serve": "../typescript-helpers/lib/serve/mod.ts",
     "@publicdomainrelay/cli-args-env": "../typescript-helpers/lib/cli-args-env/mod.ts",
     "@publicdomainrelay/sandbox-abc": "../deno-worker-sandbox/lib/abc/sandbox/mod.ts",
     "@publicdomainrelay/event-bus": "../typescript-helpers/lib/event-bus/mod.ts",
