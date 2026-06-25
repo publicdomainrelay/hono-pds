@@ -1,5 +1,6 @@
 import { Hono } from "@hono/hono";
 import { cors } from "@hono/hono/cors";
+import { upgradeWebSocket } from "@hono/hono/deno";
 import { registerErrorMiddleware } from "@publicdomainrelay/hono-error-middleware";
 import { createLogger, type LoggerInterface } from "@publicdomainrelay/logger";
 import type { Storage, Signer, Did, Sequencer, RepoApi } from "@publicdomainrelay/atproto-repo-abc";
@@ -134,6 +135,30 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
   mountSyncRoutes(app, { repo: wiredRepo, storage: opts.storage });
 
   const subscribe = createSubscribeHandler(sequencer);
+
+  // subscribeRepos WebSocket endpoint — enables relay crawling of local PDS.
+  const subscribeReposHandler = upgradeWebSocket((c) => {
+    const cursorQ = c.req.query("cursor");
+    const params: Record<string, string> = {};
+    if (cursorQ) params.cursor = cursorQ;
+    let unsubscribe: (() => void) | void = undefined;
+    return {
+      onOpen(_evt, ws) {
+        unsubscribe = subscribe({ nsid: "com.atproto.sync.subscribeRepos", params }, (frame) => {
+          try {
+            ws.send(JSON.stringify(frame));
+          } catch { /* ws closed */ }
+        });
+      },
+      onClose() {
+        if (unsubscribe) unsubscribe();
+      },
+      onError() {
+        if (unsubscribe) unsubscribe();
+      },
+    };
+  });
+  app.get("/xrpc/com.atproto.sync.subscribeRepos", subscribeReposHandler);
 
   return {
     app,
