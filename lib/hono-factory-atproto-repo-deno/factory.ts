@@ -7,6 +7,8 @@ import type { Storage, Signer, Did, Sequencer, RepoApi } from "@publicdomainrela
 import { XrpcError } from "@publicdomainrelay/atproto-repo-abc";
 import { Repo } from "@publicdomainrelay/atproto-repo-deno";
 import { signServiceAuth } from "@publicdomainrelay/atproto-repo-deno";
+import { createAccountStore } from "@publicdomainrelay/atproto-repo-deno";
+import type { AccountStore } from "@publicdomainrelay/atproto-repo-deno";
 import type { SubscribeHandler } from "@publicdomainrelay/atproto-repo-common";
 import { mountRepoRoutes } from "./repo-handlers.ts";
 import { mountSyncRoutes } from "./sync-handlers.ts";
@@ -32,11 +34,34 @@ export interface RepoFactory {
   sequencer: Sequencer;
 }
 
+function extractBearer(authHeader?: string): string | null {
+  if (!authHeader) return null;
+  const m = authHeader.match(/^Bearer\s+(.+)$/i);
+  return m ? m[1].trim() : null;
+}
+
+function b64urlToStandard(b64urlStr: string): string {
+  let s = b64urlStr.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4 !== 0) s += "=";
+  return s;
+}
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    return JSON.parse(atob(b64urlToStandard(parts[1])));
+  } catch { return null; }
+}
+
 export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
   const repo = new Repo(opts.storage, opts.signer, opts.did);
   const did = opts.did ?? opts.signer.did();
   const sequencer = opts.sequencer ?? new FirehoseSequencer();
   const log = opts.log ?? createLogger("pds");
+
+  const accountStore: AccountStore = createAccountStore(did, opts.signer);
+  const userSigners = new Map<string, Signer>();
 
   const app = new Hono();
 
@@ -84,24 +109,119 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     });
   }
 
+  // ── PDS auth middleware ─────────────────────────────────────────────
+
+  async function requirePdsAuth(c: { req: { header: (name: string) => string | undefined }; json: (body: unknown, status: number) => unknown }, next: () => Promise<void>) {
+    const token = extractBearer(c.req.header("authorization"));
+    if (!token) {
+      return c.json({ error: "AuthenticationRequired", message: "missing Authorization header" }, 401);
+    }
+    const payload = decodeJwtPayload(token);
+    if (!payload || !payload.sub) {
+      return c.json({ error: "AuthenticationRequired", message: "invalid access token" }, 401);
+    }
+    const result = accountStore.validateAccessJwt(token);
+    if (!result) {
+      return c.json({ error: "AuthenticationRequired", message: "token expired or invalid" }, 401);
+    }
+    (c as Record<string, unknown>).set = (key: string, value: unknown) => {
+      (c as Record<string, unknown>)[`_ctx_${key}`] = value;
+    };
+    (c as Record<string, unknown>)["_ctx_authDid"] = result.did;
+    (c as Record<string, unknown>)["_ctx_authHandle"] = result.handle;
+    await next();
+  }
+
+  // ── createAccount ───────────────────────────────────────────────────
+
+  app.post("/xrpc/com.atproto.server.createAccount", async (c) => {
+    let body: Record<string, unknown>;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "InvalidRequest", message: "invalid JSON" }, 400);
+    }
+
+    const handle = (body.handle as string) || undefined;
+    const email = (body.email as string) || undefined;
+    const password = (body.password as string) || undefined;
+
+    try {
+      const result = await accountStore.createAccount({ handle, email, password });
+      userSigners.set(result.did, result.signer);
+      return c.json({
+        accessJwt: result.accessJwt,
+        refreshJwt: result.refreshJwt,
+        handle: result.handle,
+        did: result.did,
+      });
+    } catch (err) {
+      log.error("createAccount failed", { error: String(err) });
+      return c.json({ error: "InternalError", message: "failed to create account" }, 500);
+    }
+  });
+
+  // ── createSession ───────────────────────────────────────────────────
+
+  app.post("/xrpc/com.atproto.server.createSession", async (c) => {
+    let body: Record<string, unknown>;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "InvalidRequest", message: "invalid JSON" }, 400);
+    }
+    const identifier = body.identifier as string | undefined;
+    const password = body.password as string | undefined;
+    if (!identifier || !password) {
+      return c.json({ error: "InvalidRequest", message: "identifier and password required" }, 400);
+    }
+
+    const valid = await accountStore.validatePassword(identifier, password);
+    if (!valid) {
+      return c.json({ error: "AuthenticationRequired", message: "invalid identifier or password" }, 401);
+    }
+
+    const account = accountStore.getAccount(identifier)!;
+    const tokens = await accountStore.createSessionTokens(account.did, account.handle);
+    return c.json({
+      accessJwt: tokens.accessJwt,
+      refreshJwt: tokens.refreshJwt,
+      handle: account.handle,
+      did: account.did,
+    });
+  });
+
+  // ── getServiceAuth ──────────────────────────────────────────────────
+
   app.get("/xrpc/com.atproto.server.getServiceAuth", async (c) => {
     const aud = c.req.query("aud");
     if (!aud) {
-      return new Response(
-        JSON.stringify({ error: "InvalidRequest", message: 'missing required "aud" param' }),
-        { status: 400, headers: { "content-type": "application/json" } },
-      );
+      return c.json({ error: "InvalidRequest", message: 'missing required "aud" param' }, 400);
     }
     const lxm = c.req.query("lxm") ?? undefined;
     const expQ = c.req.query("exp");
-    const token = await signServiceAuth(opts.signer, {
+
+    // Check for Authorization header — if present, use the authenticated user's signer.
+    // Otherwise fall back to PDS's own signer (backward compat).
+    const authHeader = c.req.header("authorization");
+    const token = extractBearer(authHeader);
+    let signer = opts.signer;
+    if (token) {
+      const result = accountStore.validateAccessJwt(token);
+      if (result) {
+        const userSigner = userSigners.get(result.did);
+        if (userSigner) signer = userSigner;
+      }
+    }
+
+    const serviceAuthToken = await signServiceAuth(signer, {
       aud,
       lxm,
       expiresInSec: expQ
         ? Math.max(0, parseInt(expQ) - Math.floor(Date.now() / 1000))
         : undefined,
     });
-    return c.json({ token });
+    return c.json({ token: serviceAuthToken });
   });
 
   const requestCrawlDebounce = new Map<string, number>();
@@ -136,7 +256,6 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
 
   const subscribe = createSubscribeHandler(sequencer);
 
-  // subscribeRepos WebSocket endpoint — enables relay crawling of local PDS.
   const subscribeReposHandler = upgradeWebSocket((c) => {
     const cursorQ = c.req.query("cursor");
     const params: Record<string, string> = {};

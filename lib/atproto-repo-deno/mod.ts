@@ -13,5 +13,7 @@ export { signServiceAuth } from "./service-auth.ts";
 export type { ServiceAuthOptions } from "./service-auth.ts";
 
 export { Repo } from "./repo.ts";
+export { createAccountStore } from "./account-store.ts";
+export type { AccountStore, AccountRecord } from "./account-store.ts";
 export { exportCar, importCar } from "./car.ts";
 export type { CarBlock } from "./car.ts";
