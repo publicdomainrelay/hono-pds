@@ -13,6 +13,10 @@ export class DenoKvStorage implements Storage {
         "DenoKvStorage: Deno.openKv is not available in this environment",
       );
     }
+    if (path) {
+      const parent = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : ".";
+      await Deno.mkdir(parent, { recursive: true });
+    }
     const kv = await Deno.openKv(path);
     return new DenoKvStorage(kv);
   }
