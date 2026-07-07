@@ -23,4 +23,6 @@ export class MemoryStorage implements Storage {
   async setHead(did: Did, head: { commit: Cid; rev: Tid }): Promise<void> {
     this.heads.set(did, head);
   }
+
+  close(): void { /* no-op */ }
 }

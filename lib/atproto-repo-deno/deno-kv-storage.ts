@@ -7,13 +7,13 @@ export class DenoKvStorage implements Storage {
     this.kv = kv;
   }
 
-  static async create(): Promise<DenoKvStorage> {
+  static async create(path?: string): Promise<DenoKvStorage> {
     if (typeof Deno === "undefined" || typeof Deno.openKv !== "function") {
       throw new Error(
         "DenoKvStorage: Deno.openKv is not available in this environment",
       );
     }
-    const kv = await Deno.openKv();
+    const kv = await Deno.openKv(path);
     return new DenoKvStorage(kv);
   }
 
@@ -38,5 +38,9 @@ export class DenoKvStorage implements Storage {
 
   async setHead(did: Did, head: { commit: Cid; rev: Tid }): Promise<void> {
     await this.kv.set(["heads", did], head);
+  }
+
+  close(): void {
+    this.kv.close();
   }
 }
