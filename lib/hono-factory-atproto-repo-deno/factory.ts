@@ -25,6 +25,10 @@ export interface RepoFactoryOptions {
   publicHostname?: string;
   crawlers?: string[];
   log?: LoggerInterface;
+  /** did:key public key for the atproto signing key (published as verificationMethod in did:web doc). */
+  publicKeyDid?: string;
+  /** did:key public key for the attestation key (published as verificationMethod in did:web doc). */
+  attestationKeyDid?: string;
 }
 
 export interface RepoFactory {
@@ -97,9 +101,29 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
       if (!host) {
         throw new XrpcError("InvalidRequest", "missing Host header");
       }
+      const verificationMethod: Array<{ id: string; type: string; controller: string; publicKeyMultibase: string }> = [];
+      if (opts.publicKeyDid) {
+        verificationMethod.push({
+          id: `did:web:${host}#atproto`,
+          type: "Multikey",
+          controller: `did:web:${host}`,
+          publicKeyMultibase: opts.publicKeyDid.replace(/^did:key:/, ""),
+        });
+      }
+      if (opts.attestationKeyDid) {
+        verificationMethod.push({
+          id: `did:web:${host}#attestation`,
+          type: "Multikey",
+          controller: `did:web:${host}`,
+          publicKeyMultibase: opts.attestationKeyDid.replace(/^did:key:/, ""),
+        });
+      }
+      const context: string[] = ["https://www.w3.org/ns/did/v1"];
+      if (verificationMethod.length > 0) context.push("https://w3id.org/security/multikey/v1");
       return c.json({
-        "@context": ["https://www.w3.org/ns/did/v1"],
+        "@context": context,
         id: `did:web:${host}`,
+        ...(verificationMethod.length > 0 ? { verificationMethod } : {}),
         service: opts.didWebServices!.map((s) => ({
           id: s.id.startsWith("#") ? s.id : `#${s.id}`,
           type: s.type,
