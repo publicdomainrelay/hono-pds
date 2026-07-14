@@ -14,6 +14,20 @@ import { mountRepoRoutes } from "./repo-handlers.ts";
 import { mountSyncRoutes } from "./sync-handlers.ts";
 import { FirehoseSequencer } from "./sequencer.ts";
 import { createSubscribeHandler } from "./subscribe.ts";
+// OAuth server
+import {
+  createMemoryTokenStore,
+  createSessionInjector,
+  createDpopVerifier,
+  createDpopNonceStore,
+} from "@publicdomainrelay/atproto-oauth-server-deno";
+import type {
+  DpopNonceStore,
+  DpopVerifier,
+  SessionInjector,
+  TokenStore,
+} from "@publicdomainrelay/atproto-oauth-server-abc";
+import { DPOP_NONCE_HEADER, DPoP_AUTH_SCHEME, DPoP_HEADER } from "@publicdomainrelay/oauth-server-common";
 
 export interface RepoFactoryOptions {
   storage: Storage;
@@ -29,6 +43,13 @@ export interface RepoFactoryOptions {
   publicKeyDid?: string;
   /** did:key public key for the attestation key (published as verificationMethod in did:web doc). */
   attestationKeyDid?: string;
+  /** Enable test-only OAuth authorization server. Mounts well-known endpoints,
+   *  DPoP-protected token endpoint (refresh_token grant), DPoP middleware on
+   *  XRPC routes, and exposes a SessionInjector for programmatic token issuance. */
+  oauthServer?: {
+    enabled: boolean;
+    issuer: string; // "http://127.0.0.1:PORT" — actual port resolved at route time from Host header
+  };
 }
 
 export interface RepoFactory {
@@ -36,6 +57,8 @@ export interface RepoFactory {
   subscribe: SubscribeHandler;
   api: RepoApi;
   sequencer: Sequencer;
+  /** Only present when oauthServer.enabled. Issues programmatic OAuth tokens. */
+  sessionInjector?: SessionInjector;
 }
 
 function extractBearer(authHeader?: string): string | null {
@@ -275,6 +298,156 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     },
   };
 
+  // ── OAuth authorization server (test-only) ────────────────────────────
+  // MUST be BEFORE mountRepoRoutes/mountSyncRoutes so the DPoP middleware
+  // runs before the XRPC route handlers registered by those functions.
+
+  let sessionInjector: SessionInjector | undefined;
+
+  if (opts.oauthServer?.enabled) {
+    const tokenStore: TokenStore = createMemoryTokenStore(opts.signer);
+    const dpopVerifier: DpopVerifier = createDpopVerifier();
+    const dpopNonceStore: DpopNonceStore = createDpopNonceStore();
+    sessionInjector = createSessionInjector(tokenStore, opts.oauthServer.issuer);
+
+    // Resolve issuer from request Host header (handles port: 0 dynamic assignment)
+    function resolveIssuer(c: { req: { header: (n: string) => string | undefined } }): string {
+      const host = c.req.header("host") ?? "127.0.0.1";
+      const scheme = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https";
+      return `${scheme}://${host}`;
+    }
+
+    // /.well-known/oauth-protected-resource
+    app.get("/.well-known/oauth-protected-resource", (c) => {
+      const issuer = resolveIssuer(c);
+      return c.json({
+        resource: issuer,
+        authorization_servers: [issuer],
+      });
+    });
+
+    // /.well-known/oauth-authorization-server
+    app.get("/.well-known/oauth-authorization-server", (c) => {
+      const issuer = resolveIssuer(c);
+      return c.json({
+        issuer,
+        authorization_endpoint: `${issuer}/oauth/authorize`,
+        token_endpoint: `${issuer}/oauth/token`,
+        pushed_authorization_request_endpoint: `${issuer}/oauth/par`,
+        require_pushed_authorization_requests: true,
+        token_endpoint_auth_methods_supported: ["none"],
+        response_types_supported: ["code"],
+        grant_types_supported: ["authorization_code", "refresh_token"],
+        dpop_signing_alg_values_supported: ["ES256"],
+        code_challenge_methods_supported: ["S256"],
+        scopes_supported: ["atproto"],
+      });
+    });
+
+    // POST /oauth/token — refresh_token grant only (test-mode: skips client auth)
+    app.post("/oauth/token", async (c) => {
+      let body: URLSearchParams;
+      try {
+        const text = await c.req.text();
+        body = new URLSearchParams(text);
+      } catch {
+        return c.json({ error: "invalid_request" }, 400);
+      }
+
+      const grantType = body.get("grant_type");
+      const dpopProofHeader = c.req.header(DPoP_HEADER);
+
+      // Issue nonce header on every response
+      const origin = resolveIssuer(c);
+      const nonce = await dpopNonceStore.issue(origin);
+      const headers: Record<string, string> = { [DPOP_NONCE_HEADER]: nonce };
+
+      if (!dpopProofHeader) {
+        return c.json({ error: "use_dpop_nonce" }, 400, headers);
+      }
+
+      // Verify DPoP proof (no access token yet — ath not required for refresh)
+      const proofValidation = await dpopVerifier.verifyProof(
+        dpopProofHeader, "POST", resolveIssuer(c) + "/oauth/token",
+      );
+      if (!proofValidation) {
+        return c.json({ error: "invalid_dpop_proof" }, 401, headers);
+      }
+
+      if (grantType === "refresh_token") {
+        const refreshToken = body.get("refresh_token");
+        if (!refreshToken) {
+          return c.json({ error: "invalid_request", error_description: "missing refresh_token" }, 400, headers);
+        }
+
+        const result = await tokenStore.refresh(refreshToken);
+        if (!result) {
+          return c.json({ error: "invalid_grant", error_description: "invalid or expired refresh token" }, 400, headers);
+        }
+
+        return c.json({
+          access_token: result.accessToken,
+          token_type: "DPoP",
+          refresh_token: result.refreshToken,
+          expires_in: result.expiresIn,
+          scope: "atproto",
+        }, 200, headers);
+      }
+
+      return c.json({ error: "unsupported_grant_type" }, 400, headers);
+    });
+
+    // ── DPoP auth middleware for XRPC routes ─────────────────────────────
+
+    app.use("/xrpc/*", async (c, next) => {
+      const authHeader = c.req.header("authorization") ?? "";
+      if (!authHeader.startsWith(`${DPoP_AUTH_SCHEME} `)) {
+        // No DPoP token — fall through to default requesterDid (PDS itself)
+        await next();
+        return;
+      }
+
+      const token = authHeader.slice(DPoP_AUTH_SCHEME.length + 1).trim();
+      const dpopProof = c.req.header(DPoP_HEADER);
+      if (!dpopProof) {
+        const nonce = await dpopNonceStore.issue(resolveIssuer(c));
+        return c.json({ error: "use_dpop_nonce" }, 401, { [DPOP_NONCE_HEADER]: nonce });
+      }
+
+      // Verify DPoP proof (with ath check against access token)
+      const proofValidation = await dpopVerifier.verifyProof(
+        dpopProof, c.req.method, resolveIssuer(c) + new URL(c.req.url).pathname, token,
+      );
+      if (!proofValidation) {
+        const nonce = await dpopNonceStore.issue(resolveIssuer(c));
+        return c.json({ error: "invalid_dpop_proof" }, 401, { [DPOP_NONCE_HEADER]: nonce });
+      }
+
+      // Validate the access token
+      const tokenData = await tokenStore.validate(token);
+      if (!tokenData) {
+        return c.json({ error: "invalid_token" }, 401);
+      }
+
+      // Verify token's jkt matches proof's jkt (DPoP binding)
+      if (tokenData.jkt !== proofValidation.jkt) {
+        return c.json({ error: "invalid_token", error_description: "token not bound to this DPoP key" }, 401);
+      }
+
+      // Emit nonce on successful responses too
+      const nonce = await dpopNonceStore.issue(resolveIssuer(c));
+      c.header(DPOP_NONCE_HEADER, nonce);
+
+      // In this single-tenant PDS, all repo operations go to the PDS's DID.
+      // The token's sub identifies the authenticated user but requesterDid
+      // stays as the PDS DID for repo routing. Store auth'd user DID separately.
+      c.set("oauthUserDid" as never, tokenData.sub as never);
+      await next();
+    });
+  }
+
+  // ── XRPC routes (AFTER DPoP middleware so middleware runs first) ────────
+
   mountRepoRoutes(app, wiredRepo);
   mountSyncRoutes(app, { repo: wiredRepo, storage: opts.storage });
 
@@ -288,17 +461,11 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     return {
       onOpen(_evt, ws) {
         unsubscribe = subscribe({ nsid: "com.atproto.sync.subscribeRepos", params }, (frame) => {
-          try {
-            ws.send(JSON.stringify(frame));
-          } catch { /* ws closed */ }
+          try { ws.send(JSON.stringify(frame)); } catch { /* ws closed */ }
         });
       },
-      onClose() {
-        if (unsubscribe) unsubscribe();
-      },
-      onError() {
-        if (unsubscribe) unsubscribe();
-      },
+      onClose() { if (unsubscribe) unsubscribe(); },
+      onError() { if (unsubscribe) unsubscribe(); },
     };
   });
   app.get("/xrpc/com.atproto.sync.subscribeRepos", subscribeReposHandler);
@@ -308,5 +475,6 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     subscribe,
     api: wiredRepo,
     sequencer,
+    ...(sessionInjector ? { sessionInjector } : {}),
   };
 }
