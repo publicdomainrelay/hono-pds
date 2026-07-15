@@ -6,10 +6,11 @@ import { createLogger, type LoggerInterface } from "@publicdomainrelay/logger";
 import type { Storage, Signer, Did, Sequencer, RepoApi } from "@publicdomainrelay/atproto-repo-abc";
 import { XrpcError } from "@publicdomainrelay/atproto-repo-abc";
 import { Repo } from "@publicdomainrelay/atproto-repo-deno";
-import { signServiceAuth } from "@publicdomainrelay/atproto-repo-deno";
+import { signServiceAuth, verifyServiceAuthToken } from "@publicdomainrelay/atproto-repo-deno";
 import { createAccountStore } from "@publicdomainrelay/atproto-repo-deno";
 import type { AccountStore } from "@publicdomainrelay/atproto-repo-deno";
 import type { SubscribeHandler } from "@publicdomainrelay/atproto-repo-common";
+import { drislEncode } from "@publicdomainrelay/atproto-repo-common";
 import { mountRepoRoutes } from "./repo-handlers.ts";
 import { mountSyncRoutes } from "./sync-handlers.ts";
 import { FirehoseSequencer } from "./sequencer.ts";
@@ -20,7 +21,12 @@ import {
   createSessionInjector,
   createDpopVerifier,
   createDpopNonceStore,
+  createMemoryAuthorizationCodeStore,
+  createMemoryParStore,
+  fetchClientMetadata,
+  verifyClientAssertion,
 } from "@publicdomainrelay/atproto-oauth-server-deno";
+import type { AuthorizationCodeStore, ParStore } from "@publicdomainrelay/atproto-oauth-server-deno";
 import type {
   DpopNonceStore,
   DpopVerifier,
@@ -50,6 +56,10 @@ export interface RepoFactoryOptions {
     enabled: boolean;
     issuer: string; // "http://127.0.0.1:PORT" — actual port resolved at route time from Host header
   };
+  /** Admin password for admin-protected endpoints (HTTP Basic). */
+  adminPassword?: string;
+  /** PLC directory URL for did:plc account creation. Without this, did:key is used. */
+  plcDirectoryUrl?: string;
 }
 
 export interface RepoFactory {
@@ -59,6 +69,8 @@ export interface RepoFactory {
   sequencer: Sequencer;
   /** Only present when oauthServer.enabled. Issues programmatic OAuth tokens. */
   sessionInjector?: SessionInjector;
+  /** Get the signer for an account DID (for service auth token generation). */
+  getUserSigner(did: Did): Signer | undefined;
 }
 
 function extractBearer(authHeader?: string): string | null {
@@ -93,11 +105,6 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
   const app = new Hono();
 
   app.use("*", cors());
-
-  app.use("*", async (c, next) => {
-    c.set("requesterDid" as never, did as never);
-    await next();
-  });
 
   registerErrorMiddleware(app, log);
 
@@ -156,27 +163,64 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     });
   }
 
-  // ── PDS auth middleware ─────────────────────────────────────────────
+  const adminPassword = opts.adminPassword;
+  const plcDirectoryUrl = opts.plcDirectoryUrl;
 
-  async function requirePdsAuth(c: { req: { header: (name: string) => string | undefined }; json: (body: unknown, status: number) => unknown }, next: () => Promise<void>) {
+  // ── Admin auth middleware ───────────────────────────────────────────
+
+  function requireAdminAuth(c: { req: { header: (name: string) => string | undefined }; json: (body: unknown, status: number) => unknown }, next: () => Promise<void>) {
+    if (!adminPassword) {
+      return c.json({ error: "AuthenticationRequired", message: "admin not configured" }, 401);
+    }
+    const authHeader = c.req.header("authorization") ?? "";
+    if (!authHeader.startsWith("Basic ")) {
+      return c.json({ error: "AuthenticationRequired", message: "admin Basic auth required" }, 401);
+    }
+    const creds = atob(authHeader.slice(6));
+    const [user, pw] = creds.split(":");
+    if (user !== "admin" || pw !== adminPassword) {
+      return c.json({ error: "AuthenticationRequired", message: "invalid admin credentials" }, 401);
+    }
+    return next();
+  }
+
+  // ── Unified auth middleware (DPoP or Bearer service/access JWT) ────
+
+  async function requireAuth(c: { req: { header: (name: string) => string | undefined; path?: string }; json: (body: unknown, status: number) => unknown; set: (k: string, v: unknown) => void; get: (k: string) => unknown }, next: () => Promise<void>) {
+    // DPoP middleware already validated — use oauthUserDid if set
+    const oauthDid = c.get("oauthUserDid") as Did | undefined;
+    if (oauthDid) {
+      c.set("requesterDid" as never, oauthDid as never);
+      return next();
+    }
+
+    // Try Bearer auth: service auth JWT first, then legacy access JWT
     const token = extractBearer(c.req.header("authorization"));
     if (!token) {
-      return c.json({ error: "AuthenticationRequired", message: "missing Authorization header" }, 401);
+      return c.json({ error: "AuthenticationRequired", message: "valid DPoP or Bearer token required" }, 401);
     }
-    const payload = decodeJwtPayload(token);
-    if (!payload || !payload.sub) {
-      return c.json({ error: "AuthenticationRequired", message: "invalid access token" }, 401);
+
+    // Extract lxm from request path (e.g. /xrpc/com.atproto.repo.createRecord → com.atproto.repo.createRecord)
+    const path = c.req.path ?? "";
+    const lxm = path.startsWith("/xrpc/") ? path.slice("/xrpc/".length) : undefined;
+
+    const svc = await verifyServiceAuthToken(token, {
+      audDid: did,
+      lxm,
+      isHostedAccount: (queryDid: Did) => accountStore.getAccount(queryDid) !== undefined,
+    });
+    if (svc) {
+      c.set("requesterDid" as never, svc.iss as never);
+      return next();
     }
-    const result = accountStore.validateAccessJwt(token);
-    if (!result) {
-      return c.json({ error: "AuthenticationRequired", message: "token expired or invalid" }, 401);
+
+    const legacy = await accountStore.validateAccessJwt(token);
+    if (legacy) {
+      c.set("requesterDid" as never, legacy.did as never);
+      return next();
     }
-    (c as Record<string, unknown>).set = (key: string, value: unknown) => {
-      (c as Record<string, unknown>)[`_ctx_${key}`] = value;
-    };
-    (c as Record<string, unknown>)["_ctx_authDid"] = result.did;
-    (c as Record<string, unknown>)["_ctx_authHandle"] = result.handle;
-    await next();
+
+    return c.json({ error: "AuthenticationRequired", message: "invalid token" }, 401);
   }
 
   // ── createAccount ───────────────────────────────────────────────────
@@ -194,8 +238,46 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     const password = (body.password as string) || undefined;
 
     try {
-      const result = await accountStore.createAccount({ handle, email, password });
+      let didOverride: Did | undefined;
+      let signerOverride: Signer | undefined;
+      // did:plc path: if plcDirectoryUrl configured, create PLC DID
+      if (plcDirectoryUrl) {
+        const { Secp256k1Keypair } = await import("@atproto/crypto");
+        const kp = await Secp256k1Keypair.create({ exportable: true });
+        const rotationKey = kp.did();
+        const genesisOp = {
+          type: "plc_operation",
+          rotationKeys: [rotationKey],
+          verificationMethods: { atproto: rotationKey },
+          services: { atproto_pds: { type: "AtprotoPersonalDataServer", endpoint: plcDirectoryUrl } },
+          prev: null,
+          sig: "",
+        };
+        const sig = await kp.sign(new TextEncoder().encode(JSON.stringify(genesisOp)));
+        // hex-encode the signature for PLC
+        const sigHex = Array.from(sig).map((b) => b.toString(16).padStart(2, "0")).join("");
+        genesisOp.sig = sigHex;
+        try {
+          const plcRes = await fetch(`${plcDirectoryUrl}/${rotationKey}`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(genesisOp),
+          });
+          if (plcRes.ok) {
+            const plcResult = await plcRes.json() as { did?: string };
+            const plcDid = plcResult.did ?? rotationKey;
+            didOverride = plcDid;
+            signerOverride = {
+              did: () => plcDid,
+              sign: (bytes: Uint8Array) => kp.sign(bytes),
+            };
+          }
+        } catch { /* PLC unreachable, fall through to did:key */ }
+      }
+      const result = await accountStore.createAccount({ handle, email, password, didOverride, signerOverride });
       userSigners.set(result.did, result.signer);
+      // Bootstrap an empty repo for the new account
+      await repo.applyWrites(result.did, []);
       return c.json({
         accessJwt: result.accessJwt,
         refreshJwt: result.refreshJwt,
@@ -238,9 +320,66 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     });
   });
 
+  // ── refreshSession ────────────────────────────────────────────────
+
+  app.post("/xrpc/com.atproto.server.refreshSession", async (c) => {
+    const authHeader = c.req.header("authorization");
+    const token = extractBearer(authHeader);
+    if (!token) {
+      return c.json({ error: "AuthenticationRequired", message: "missing Authorization header" }, 401);
+    }
+    const result = await accountStore.validateRefreshJwt(token);
+    if (!result) {
+      return c.json({ error: "AuthenticationRequired", message: "token expired or invalid" }, 401);
+    }
+    const tokens = await accountStore.createSessionTokens(result.did, result.handle);
+    const account = accountStore.getAccount(result.did);
+    return c.json({
+      accessJwt: tokens.accessJwt,
+      refreshJwt: tokens.refreshJwt,
+      handle: account?.handle ?? result.handle,
+      did: result.did,
+    });
+  });
+
+  // ── Admin-protected endpoints ─────────────────────────────────────
+
+  const inviteCodes = new Set<string>();
+
+  app.post("/xrpc/com.atproto.server.createInviteCode", requireAdminAuth, async (c) => {
+    let body: Record<string, unknown> = {};
+    try { body = await c.req.json().catch(() => ({})); } catch { /* optional */ }
+    const useCount = (body.useCount as number) ?? 1;
+    const codes: string[] = [];
+    for (let i = 0; i < useCount; i++) {
+      const code = `${btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(12))))}-${Date.now().toString(36)}`;
+      inviteCodes.add(code);
+      codes.push(code);
+    }
+    return c.json({ code: codes[0], codes });
+  });
+
+  app.post("/xrpc/com.atproto.server.createInviteCodes", requireAdminAuth, async (c) => {
+    let body: Record<string, unknown> = {};
+    try { body = await c.req.json().catch(() => ({})); } catch { /* optional */ }
+    const count = (body.codeCount as number) ?? 1;
+    const useCount = (body.useCount as number) ?? 1;
+    const codes: { code: string; available: number }[] = [];
+    for (let i = 0; i < count; i++) {
+      const code = `${btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(12))))}-${Date.now().toString(36)}`;
+      inviteCodes.add(code);
+      codes.push({ code, available: useCount });
+    }
+    return c.json({ codes });
+  });
+
+  app.post("/xrpc/com.atproto.admin.getInviteCodes", requireAdminAuth, async (c) => {
+    return c.json({ codes: [...inviteCodes].map((code) => ({ code, available: 1, disabled: false })) });
+  });
+
   // ── getServiceAuth ──────────────────────────────────────────────────
 
-  app.get("/xrpc/com.atproto.server.getServiceAuth", async (c) => {
+  async function handleGetServiceAuth(c: { req: { query: (name: string) => string | undefined }; json: (body: unknown, status: number) => unknown }) {
     const aud = c.req.query("aud");
     if (!aud) {
       return c.json({ error: "InvalidRequest", message: 'missing required "aud" param' }, 400);
@@ -248,13 +387,11 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     const lxm = c.req.query("lxm") ?? undefined;
     const expQ = c.req.query("exp");
 
-    // Check for Authorization header — if present, use the authenticated user's signer.
-    // Otherwise fall back to PDS's own signer (backward compat).
-    const authHeader = c.req.header("authorization");
+    const authHeader = (c as { req: { header: (name: string) => string | undefined } }).req.header("authorization");
     const token = extractBearer(authHeader);
     let signer = opts.signer;
     if (token) {
-      const result = accountStore.validateAccessJwt(token);
+      const result = await accountStore.validateAccessJwt(token);
       if (result) {
         const userSigner = userSigners.get(result.did);
         if (userSigner) signer = userSigner;
@@ -268,6 +405,32 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
         ? Math.max(0, parseInt(expQ) - Math.floor(Date.now() / 1000))
         : undefined,
     });
+    return c.json({ token: serviceAuthToken });
+  }
+
+  app.get("/xrpc/com.atproto.server.getServiceAuth", async (c) => {
+    return handleGetServiceAuth(c);
+  });
+
+  app.post("/xrpc/com.atproto.server.getServiceAuth", async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const aud = body.aud as string | undefined;
+    if (!aud) {
+      return c.json({ error: "InvalidRequest", message: 'missing required "aud" param' }, 400);
+    }
+    const lxm = body.lxm as string | undefined;
+    const authHeader = c.req.header("authorization");
+    const token = extractBearer(authHeader);
+    let signer = opts.signer;
+    if (token) {
+      // DPoP token: try OAuth validation. Falls back to PDS signer.
+      const result = await accountStore.validateAccessJwt(token);
+      if (result) {
+        const userSigner = userSigners.get(result.did);
+        if (userSigner) signer = userSigner;
+      }
+    }
+    const serviceAuthToken = await signServiceAuth(signer, { aud, lxm });
     return c.json({ token: serviceAuthToken });
   });
 
@@ -308,6 +471,8 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     const tokenStore: TokenStore = createMemoryTokenStore(opts.signer);
     const dpopVerifier: DpopVerifier = createDpopVerifier();
     const dpopNonceStore: DpopNonceStore = createDpopNonceStore();
+    const authCodeStore: AuthorizationCodeStore = createMemoryAuthorizationCodeStore();
+    const parStore: ParStore = createMemoryParStore();
     sessionInjector = createSessionInjector(tokenStore, opts.oauthServer.issuer);
 
     // Resolve issuer from request Host header (handles port: 0 dynamic assignment)
@@ -335,16 +500,141 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
         token_endpoint: `${issuer}/oauth/token`,
         pushed_authorization_request_endpoint: `${issuer}/oauth/par`,
         require_pushed_authorization_requests: true,
-        token_endpoint_auth_methods_supported: ["none"],
+        token_endpoint_auth_methods_supported: ["none", "private_key_jwt"],
+        token_endpoint_auth_signing_alg_values_supported: ["ES256"],
         response_types_supported: ["code"],
         grant_types_supported: ["authorization_code", "refresh_token"],
         dpop_signing_alg_values_supported: ["ES256"],
+        authorization_response_iss_parameter_supported: true,
+        client_id_metadata_document_supported: true,
+        dpop_bound_access_tokens_supported: true,
         code_challenge_methods_supported: ["S256"],
         scopes_supported: ["atproto"],
       });
     });
 
-    // POST /oauth/token — refresh_token grant only (test-mode: skips client auth)
+    // POST /oauth/par — Pushed Authorization Requests (mandatory for ATProto OAuth)
+    app.post("/oauth/par", async (c) => {
+      const origin = resolveIssuer(c);
+      const dpopProofHeader = c.req.header(DPoP_HEADER);
+      const nonce = await dpopNonceStore.issue(origin);
+      const headers: Record<string, string> = { [DPOP_NONCE_HEADER]: nonce };
+
+      if (!dpopProofHeader) {
+        return c.json({ error: "use_dpop_nonce" }, 400, headers);
+      }
+      const proof = await dpopVerifier.verifyProof(dpopProofHeader, "POST", `${origin}/oauth/par`);
+      if (!proof) {
+        return c.json({ error: "invalid_dpop_proof" }, 401, headers);
+      }
+
+      let body: URLSearchParams;
+      try {
+        body = new URLSearchParams(await c.req.text());
+      } catch {
+        return c.json({ error: "invalid_request" }, 400, headers);
+      }
+
+      const clientId = body.get("client_id");
+      const codeChallenge = body.get("code_challenge");
+      const codeChallengeMethod = body.get("code_challenge_method") ?? "S256";
+      const redirectUri = body.get("redirect_uri");
+      const scope = body.get("scope") ?? "atproto";
+      const state = body.get("state");
+      const responseType = body.get("response_type");
+
+      if (!clientId || !codeChallenge || !redirectUri || !responseType || !state) {
+        return c.json({ error: "invalid_request", error_description: "client_id, code_challenge, redirect_uri, response_type, and state required" }, 400, headers);
+      }
+      if (responseType !== "code") {
+        return c.json({ error: "unsupported_response_type" }, 400, headers);
+      }
+
+      // Gap 4: validate client metadata
+      const clientMeta = await fetchClientMetadata(clientId);
+      if (!clientMeta) {
+        return c.json({ error: "invalid_client_metadata", error_description: "could not resolve client metadata" }, 400, headers);
+      }
+      if (!clientMeta.redirect_uris.includes(redirectUri)) {
+        return c.json({ error: "invalid_redirect_uri", error_description: "redirect_uri not registered in client metadata" }, 400, headers);
+      }
+
+      const requestUri = await parStore.store({
+        clientId, codeChallenge, codeChallengeMethod, redirectUri, scope, state, responseType,
+      });
+
+      return c.json({ request_uri: requestUri, expires_in: 60 }, 200, headers);
+    });
+
+    // POST /oauth/authorize — authorization code flow (DPoP-bound)
+    app.post("/oauth/authorize", async (c) => {
+      const authHeader = c.req.header("authorization") ?? "";
+      if (!authHeader.startsWith(`${DPoP_AUTH_SCHEME} `)) {
+        return c.json({ error: "invalid_request", error_description: "DPoP authorization required" }, 401);
+      }
+      const token = authHeader.slice(DPoP_AUTH_SCHEME.length + 1).trim();
+      const tokenValid = await tokenStore.validate(token);
+      if (!tokenValid) {
+        return c.json({ error: "invalid_token" }, 401);
+      }
+
+      let body: URLSearchParams;
+      try {
+        body = new URLSearchParams(await c.req.text());
+      } catch {
+        return c.json({ error: "invalid_request" }, 400);
+      }
+
+      // PAR flow: resolve request_uri
+      const requestUri = body.get("request_uri");
+      const clientId = body.get("client_id");
+      let codeChallenge: string | null;
+      let codeChallengeMethod: string;
+      let redirectUri: string | null;
+      let scope: string;
+      let state: string | null;
+
+      if (requestUri && clientId) {
+        const stored = await parStore.consume(requestUri);
+        if (!stored || stored.clientId !== clientId) {
+          return c.json({ error: "invalid_request", error_description: "invalid or expired request_uri" }, 400);
+        }
+        codeChallenge = stored.codeChallenge;
+        codeChallengeMethod = stored.codeChallengeMethod;
+        redirectUri = stored.redirectUri;
+        scope = stored.scope;
+        state = stored.state;
+      } else {
+        codeChallenge = body.get("code_challenge");
+        codeChallengeMethod = body.get("code_challenge_method") ?? "S256";
+        redirectUri = body.get("redirect_uri");
+        scope = body.get("scope") ?? "atproto";
+        state = body.get("state");
+        if (!codeChallenge || !redirectUri) {
+          return c.json({ error: "invalid_request", error_description: "code_challenge and redirect_uri required" }, 400);
+        }
+      }
+
+      const responseType = body.get("response_type");
+      if (responseType && responseType !== "code") {
+        return c.json({ error: "unsupported_response_type" }, 400);
+      }
+
+      const code = await authCodeStore.create({
+        userDid: tokenValid.sub,
+        handle: tokenValid.handle ?? tokenValid.sub,
+        scope,
+        codeChallenge: codeChallenge!,
+        codeChallengeMethod,
+        redirectUri: redirectUri!,
+      });
+
+      const redirectParams = new URLSearchParams({ code });
+      if (state) redirectParams.set("state", state);
+      return c.json({ redirect_uri: `${redirectUri}?${redirectParams.toString()}`, code });
+    });
+
+    // POST /oauth/token — refresh_token + authorization_code grants
     app.post("/oauth/token", async (c) => {
       let body: URLSearchParams;
       try {
@@ -364,6 +654,20 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
 
       if (!dpopProofHeader) {
         return c.json({ error: "use_dpop_nonce" }, 400, headers);
+      }
+
+      // Gap 5: verify client assertion for confidential clients (private_key_jwt)
+      const clientAssertionType = body.get("client_assertion_type");
+      const clientAssertion = body.get("client_assertion");
+      const clientId = body.get("client_id");
+      if (clientAssertionType === "urn:ietf:params:oauth:client-assertion-type:jwt-bearer") {
+        if (!clientAssertion || !clientId) {
+          return c.json({ error: "invalid_client", error_description: "client_assertion and client_id required" }, 401, headers);
+        }
+        const valid = await verifyClientAssertion(clientAssertion, clientId, resolveIssuer(c));
+        if (!valid) {
+          return c.json({ error: "invalid_client", error_description: "client assertion verification failed" }, 401, headers);
+        }
       }
 
       // Verify DPoP proof (no access token yet — ath not required for refresh)
@@ -391,6 +695,34 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
           refresh_token: result.refreshToken,
           expires_in: result.expiresIn,
           scope: "atproto",
+        }, 200, headers);
+      }
+
+      if (grantType === "authorization_code") {
+        const code = body.get("code");
+        const codeVerifier = body.get("code_verifier");
+        if (!code || !codeVerifier) {
+          return c.json({ error: "invalid_request", error_description: "code and code_verifier required" }, 400, headers);
+        }
+
+        const validated = await authCodeStore.validate(code, codeVerifier);
+        if (!validated) {
+          return c.json({ error: "invalid_grant", error_description: "invalid or expired authorization code" }, 400, headers);
+        }
+
+        const result = await tokenStore.issue({
+          userDid: validated.userDid,
+          handle: validated.handle,
+          scope: validated.scope,
+          jkt: proofValidation.jkt,
+        });
+
+        return c.json({
+          access_token: result.accessToken,
+          token_type: "DPoP",
+          refresh_token: result.refreshToken,
+          expires_in: result.expiresIn,
+          scope: validated.scope,
         }, 200, headers);
       }
 
@@ -448,6 +780,11 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
 
   // ── XRPC routes (AFTER DPoP middleware so middleware runs first) ────────
 
+  app.use("/xrpc/com.atproto.repo.createRecord", requireAuth);
+  app.use("/xrpc/com.atproto.repo.putRecord", requireAuth);
+  app.use("/xrpc/com.atproto.repo.deleteRecord", requireAuth);
+  app.use("/xrpc/com.atproto.repo.applyWrites", requireAuth);
+
   mountRepoRoutes(app, wiredRepo);
   mountSyncRoutes(app, { repo: wiredRepo, storage: opts.storage });
 
@@ -461,7 +798,17 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     return {
       onOpen(_evt, ws) {
         unsubscribe = subscribe({ nsid: "com.atproto.sync.subscribeRepos", params }, (frame) => {
-          try { ws.send(JSON.stringify(frame)); } catch { /* ws closed */ }
+          try {
+            // Detect frame type for header
+            const frameType = (frame as Record<string, unknown>).repo != null ? "#commit"
+              : (frame as Record<string, unknown>).active != null ? "#account" : "#identity";
+            const header = drislEncode({ op: 1, t: frameType });
+            const body = drislEncode(frame);
+            const wireFrame = new Uint8Array(header.length + body.length);
+            wireFrame.set(header, 0);
+            wireFrame.set(body, header.length);
+            ws.send(wireFrame as unknown as ArrayBuffer);
+          } catch { /* ws closed */ }
         });
       },
       onClose() { if (unsubscribe) unsubscribe(); },
@@ -476,5 +823,6 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     api: wiredRepo,
     sequencer,
     ...(sessionInjector ? { sessionInjector } : {}),
+    getUserSigner: (queryDid: Did) => userSigners.get(queryDid),
   };
 }

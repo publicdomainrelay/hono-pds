@@ -2,7 +2,7 @@ import type { Hono } from "@hono/hono";
 import type { RepoApi, Storage, Did } from "@publicdomainrelay/atproto-repo-abc";
 import { XrpcError } from "@publicdomainrelay/atproto-repo-abc";
 import { exportCar } from "@publicdomainrelay/atproto-repo-deno";
-import { decode as cborDecode } from "@publicdomainrelay/atproto-repo-common";
+import { drislDecode } from "@publicdomainrelay/atproto-repo-common";
 
 export interface SyncHandlerOptions {
   repo: RepoApi;
@@ -19,7 +19,7 @@ export function mountSyncRoutes(app: Hono, opts: SyncHandlerOptions): void {
 
     const commitBytes = await opts.storage.get(head.commit);
     if (!commitBytes) throw new XrpcError("RepoNotFound", "commit not found");
-    const commit = cborDecode(commitBytes) as Record<string, unknown>;
+    const commit = drislDecode(commitBytes) as Record<string, unknown>;
     const rootCid = (commit.data as { $link: string })?.$link;
     if (!rootCid) throw new XrpcError("RepoNotFound", "MST root not found in commit");
 

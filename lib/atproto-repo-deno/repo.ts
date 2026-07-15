@@ -10,6 +10,7 @@ import { cidFromDigest } from "@publicdomainrelay/atproto-repo-common";
 import { nextTid } from "@publicdomainrelay/atproto-repo-common";
 import { createMst, diff } from "@publicdomainrelay/atproto-repo-abc";
 import { concat } from "@publicdomainrelay/atproto-repo-common";
+import { drislEncode, drislDecode, drislCidLink } from "@publicdomainrelay/atproto-repo-common";
 
 interface CommitData {
   did: Did;
@@ -24,9 +25,9 @@ function commitToObj(commit: Omit<CommitData, "sig">): Record<string, unknown> {
   const obj: Record<string, unknown> = {
     did: commit.did,
     version: commit.version,
-    data: cidLink(commit.data),
+    data: drislCidLink(commit.data),
     rev: commit.rev,
-    prev: commit.prev !== null ? cidLink(commit.prev) : null,
+    prev: commit.prev !== null ? drislCidLink(commit.prev) : null,
   };
   return obj;
 }
@@ -34,11 +35,11 @@ function commitToObj(commit: Omit<CommitData, "sig">): Record<string, unknown> {
 function encodeCommit(commit: CommitData): Bytes {
   const obj = commitToObj(commit);
   obj.sig = commit.sig;
-  return cborEncode(obj);
+  return drislEncode(obj);
 }
 
 function decodeCommit(bytes: Bytes): CommitData {
-  const obj = cborDecode(bytes) as Record<string, unknown>;
+  const obj = drislDecode(bytes) as Record<string, unknown>;
   const data = obj.data as { $link: Cid } | undefined;
   const prevRaw = obj.prev as { $link: Cid } | undefined;
   return {
@@ -172,8 +173,8 @@ export class Repo implements RepoApi {
   }
 
   async applyWrites(_did: Did, writes: WriteOp[]): Promise<CommitEvent> {
-    if (_did !== this.#did) {
-      throw new XrpcError("InvalidRequest", `DID mismatch: expected ${this.#did}`);
+    if (writes.length > 200) {
+      throw new XrpcError("InvalidRequest", "writes exceed maximum of 200 per commit");
     }
 
     const head = await this.#store.getHead(_did);
@@ -209,6 +210,7 @@ export class Repo implements RepoApi {
             action: existing ? "update" : "create",
             path: key,
             cid: recordCid,
+            prev: existing ?? null,
           });
           break;
         }
@@ -218,7 +220,7 @@ export class Repo implements RepoApi {
             throw new XrpcError("RecordNotFound", `record not found: ${key}`);
           }
           await mst.delete(key);
-          ops.push({ action: "delete", path: key, cid: null });
+          ops.push({ action: "delete", path: key, cid: null, prev: existing });
           break;
         }
       }
@@ -240,7 +242,6 @@ export class Repo implements RepoApi {
     }
 
     const changedCids = await diff(this.#store, prevRoot, rootForCommit);
-    const carBlocks = await buildCarSlice(this.#store, changedCids);
 
     const rev = nextTid();
     const commitData: CommitData = {
@@ -259,13 +260,16 @@ export class Repo implements RepoApi {
       rev: commitData.rev,
       prev: commitData.prev,
     };
-    const bytesToSign = cborEncode(commitToObj(dataForSigning));
+    // DRISL-encode unsigned commit, then sign (signer hashes internally per AT Protocol spec)
+    const bytesToSign = drislEncode(commitToObj(dataForSigning));
     const sig = await this.#signer.sign(bytesToSign);
     commitData.sig = sig;
 
     const commitBytes = encodeCommit(commitData);
     const commitCid = await cidForBytes(commitBytes);
     await this.#store.put(commitCid, commitBytes);
+
+    const carBlocks = await buildCarSlice(this.#store, changedCids, commitCid);
 
     await this.#store.setHead(_did, { commit: commitCid, rev });
 
@@ -276,14 +280,15 @@ export class Repo implements RepoApi {
       since,
       blocks: carBlocks,
       ops,
+      prevData: prevRoot,
     };
   }
 }
 
-async function buildCarSlice(store: Storage, cids: Cid[]): Promise<Bytes> {
+async function buildCarSlice(store: Storage, cids: Cid[], commitCid: Cid): Promise<Bytes> {
   const parts: Bytes[] = [];
 
-  const header = cborEncode({ roots: [], version: 1 });
+  const header = cborEncode({ roots: [cidToRawBytes(commitCid)], version: 1 });
   const headerLen = varintEncode(header.length);
   parts.push(headerLen, header);
 

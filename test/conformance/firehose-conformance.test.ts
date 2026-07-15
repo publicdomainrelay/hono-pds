@@ -28,7 +28,6 @@ Deno.test("[conformance] firehose frame has required #commit fields", async () =
   }
   assertExists(frame);
 
-  assertEquals(frame.$type, "com.atproto.sync.subscribeRepos#commit");
   assertEquals(typeof frame.seq, "number");
   assertEquals(frame.seq, 1);
   assertEquals(frame.repo, did);

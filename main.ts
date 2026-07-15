@@ -50,6 +50,11 @@ export async function createFromEnv(opts?: CreateFromEnvOptions): Promise<RepoFa
     didWebServices: didWebServices.length > 0 ? didWebServices : undefined,
     publicHostname: opts?.publicHostname,
     crawlers,
+    publicKeyDid: signer.did(),
+    oauthServer: {
+      enabled: true,
+      issuer: "http://127.0.0.1:2583",
+    },
   });
 }
 

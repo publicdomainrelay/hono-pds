@@ -1,28 +1,32 @@
-import { assertEquals, assertExists, assertRejects, assertGreater } from "@std/assert";
+import { assertEquals, assertExists, assertGreater } from "@std/assert";
 import { createRepoFactory } from "@publicdomainrelay/hono-factory-atproto-repo-deno";
-import { MemoryStorage } from "@publicdomainrelay/atproto-repo-deno";
-import { encode as cborEncode, decode as cborDecode } from "@publicdomainrelay/atproto-repo-common";
-import type { Signer, Bytes, Did, SequencedFrame } from "@publicdomainrelay/atproto-repo-abc";
+import { MemoryStorage, signerFromKeypair, signServiceAuth } from "@publicdomainrelay/atproto-repo-deno";
+import { Secp256k1Keypair } from "@atproto/crypto";
 
-class MockSigner implements Signer {
-  #did: Did;
-  constructor(did: Did = "did:key:zConformanceTest") { this.#did = did; }
-  did(): Did { return this.#did; }
-  async sign(bytes: Bytes): Promise<Bytes> {
-    const digest = await crypto.subtle.digest(
-      "SHA-256",
-      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
-    );
-    return new Uint8Array(digest);
-  }
+// All write tests use real secp256k1 keypairs + service auth Bearer tokens.
+// Read-only tests (health, describeServer, well-known, getRecord, listRecords, describeRepo) are public.
+
+async function createAccountAndToken(factory: ReturnType<typeof createRepoFactory>, pdsDid: string) {
+  const res = await factory.app.request("/xrpc/com.atproto.server.createAccount", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ handle: "test-user", email: "test@test.com", password: "test-password" }),
+  });
+  const acct = await res.json() as { did: string; handle: string; accessJwt: string };
+  const signer = factory.getUserSigner(acct.did);
+  if (!signer) throw new Error("no signer for account");
+  // Return a token generator for fresh tokens per request (jti replay prevention)
+  const getToken = () => signServiceAuth(signer, { aud: pdsDid });
+  return { did: acct.did, handle: acct.handle, getToken };
 }
 
-function buildHeaders(did: Did): Record<string, string> {
-  return { "content-type": "application/json" };
+function authHeaders(token: string): Record<string, string> {
+  return { "content-type": "application/json", authorization: `Bearer ${token}` };
 }
 
 Deno.test("[conformance] health endpoint returns version", async () => {
-  const factory = createRepoFactory({ storage: new MemoryStorage(), signer: new MockSigner() });
+  const kp = await Secp256k1Keypair.create();
+  const factory = createRepoFactory({ storage: new MemoryStorage(), signer: signerFromKeypair(kp) });
   const res = await factory.app.request("/xrpc/_health");
   assertEquals(res.status, 200);
   const data = await res.json() as { version?: string };
@@ -30,7 +34,8 @@ Deno.test("[conformance] health endpoint returns version", async () => {
 });
 
 Deno.test("[conformance] describeServer returns did, version, availableUserDomains, inviteCodeRequired", async () => {
-  const signer = new MockSigner();
+  const kp = await Secp256k1Keypair.create();
+  const signer = signerFromKeypair(kp);
   const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
   const res = await factory.app.request("/xrpc/com.atproto.server.describeServer");
   assertEquals(res.status, 200);
@@ -44,7 +49,8 @@ Deno.test("[conformance] describeServer returns did, version, availableUserDomai
 });
 
 Deno.test("[conformance] well-known atproto-did returns did", async () => {
-  const signer = new MockSigner();
+  const kp = await Secp256k1Keypair.create();
+  const signer = signerFromKeypair(kp);
   const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
   const res = await factory.app.request("/.well-known/atproto-did");
   assertEquals(res.status, 200);
@@ -53,13 +59,15 @@ Deno.test("[conformance] well-known atproto-did returns did", async () => {
 });
 
 Deno.test("[conformance] createRecord returns uri and cid", async () => {
-  const signer = new MockSigner();
-  const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
-  const did = signer.did();
+  const kp = await Secp256k1Keypair.create();
+  const factory = createRepoFactory({ storage: new MemoryStorage(), signer: signerFromKeypair(kp) });
+  const pdsDid = signerFromKeypair(kp).did();
+  const { did, getToken } = await createAccountAndToken(factory, pdsDid);
+
   const res = await factory.app.request("/xrpc/com.atproto.repo.createRecord", {
     method: "POST",
     body: JSON.stringify({ repo: did, collection: "app.bsky.feed.post", record: { text: "Hello", createdAt: new Date().toISOString() } }),
-    headers: buildHeaders(did),
+    headers: authHeaders(await getToken()),
   });
   assertEquals(res.status, 200);
   const data = await res.json() as { uri: string; cid: string };
@@ -70,13 +78,15 @@ Deno.test("[conformance] createRecord returns uri and cid", async () => {
 });
 
 Deno.test("[conformance] createRecord defaults $type to collection name", async () => {
-  const signer = new MockSigner();
-  const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
-  const did = signer.did();
+  const kp = await Secp256k1Keypair.create();
+  const factory = createRepoFactory({ storage: new MemoryStorage(), signer: signerFromKeypair(kp) });
+  const pdsDid = signerFromKeypair(kp).did();
+  const { did, getToken } = await createAccountAndToken(factory, pdsDid);
+
   const res = await factory.app.request("/xrpc/com.atproto.repo.createRecord", {
     method: "POST",
     body: JSON.stringify({ repo: did, collection: "com.example.record", record: { foo: "bar" } }),
-    headers: buildHeaders(did),
+    headers: authHeaders(await getToken()),
   });
   assertEquals(res.status, 200);
   const data = await res.json() as { uri: string };
@@ -92,14 +102,16 @@ Deno.test("[conformance] createRecord defaults $type to collection name", async 
 });
 
 Deno.test("[conformance] createRecord getRecord round-trip preserves value", async () => {
-  const signer = new MockSigner();
-  const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
-  const did = signer.did();
+  const kp = await Secp256k1Keypair.create();
+  const factory = createRepoFactory({ storage: new MemoryStorage(), signer: signerFromKeypair(kp) });
+  const pdsDid = signerFromKeypair(kp).did();
+  const { did, getToken } = await createAccountAndToken(factory, pdsDid);
+
   const recordValue = { $type: "app.bsky.feed.post", text: "Hello, world!", createdAt: new Date().toISOString() };
   const createRes = await factory.app.request("/xrpc/com.atproto.repo.createRecord", {
     method: "POST",
     body: JSON.stringify({ repo: did, collection: "app.bsky.feed.post", record: recordValue }),
-    headers: buildHeaders(did),
+    headers: authHeaders(await getToken()),
   });
   const createData = await createRes.json() as { uri: string; cid: string };
   const uriParts = createData.uri.split("/");
@@ -117,9 +129,11 @@ Deno.test("[conformance] createRecord getRecord round-trip preserves value", asy
 });
 
 Deno.test("[conformance] getRecord returns 404 for missing record", async () => {
-  const signer = new MockSigner();
-  const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
-  const did = signer.did();
+  const kp = await Secp256k1Keypair.create();
+  const factory = createRepoFactory({ storage: new MemoryStorage(), signer: signerFromKeypair(kp) });
+  const pdsDid = signerFromKeypair(kp).did();
+  const { did } = await createAccountAndToken(factory, pdsDid);
+
   const res = await factory.app.request(
     `/xrpc/com.atproto.repo.getRecord?repo=${did}&collection=com.example.record&rkey=nonexistent`,
   );
@@ -129,9 +143,10 @@ Deno.test("[conformance] getRecord returns 404 for missing record", async () => 
 });
 
 Deno.test("[conformance] listRecords returns paginated results with cursor", async () => {
-  const signer = new MockSigner();
-  const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
-  const did = signer.did();
+  const kp = await Secp256k1Keypair.create();
+  const factory = createRepoFactory({ storage: new MemoryStorage(), signer: signerFromKeypair(kp) });
+  const pdsDid = signerFromKeypair(kp).did();
+  const { did } = await createAccountAndToken(factory, pdsDid);
 
   for (let i = 0; i < 5; i++) {
     await factory.api.applyWrites(did, [{
@@ -157,9 +172,10 @@ Deno.test("[conformance] listRecords returns paginated results with cursor", asy
 });
 
 Deno.test("[conformance] describeRepo returns did, handle, collections, head", async () => {
-  const signer = new MockSigner();
-  const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
-  const did = signer.did();
+  const kp = await Secp256k1Keypair.create();
+  const factory = createRepoFactory({ storage: new MemoryStorage(), signer: signerFromKeypair(kp) });
+  const pdsDid = signerFromKeypair(kp).did();
+  const { did } = await createAccountAndToken(factory, pdsDid);
 
   await factory.api.applyWrites(did, [{
     action: "create", collection: "com.example.alpha",
@@ -176,26 +192,29 @@ Deno.test("[conformance] describeRepo returns did, handle, collections, head", a
 });
 
 Deno.test("[conformance] deleteRecord no-ops if record does not exist", async () => {
-  const signer = new MockSigner();
-  const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
-  const did = signer.did();
+  const kp = await Secp256k1Keypair.create();
+  const factory = createRepoFactory({ storage: new MemoryStorage(), signer: signerFromKeypair(kp) });
+  const pdsDid = signerFromKeypair(kp).did();
+  const { did, getToken } = await createAccountAndToken(factory, pdsDid);
+
   const res = await factory.app.request("/xrpc/com.atproto.repo.deleteRecord", {
     method: "POST",
     body: JSON.stringify({ repo: did, collection: "com.example.record", rkey: "nonexistent" }),
-    headers: buildHeaders(did),
+    headers: authHeaders(await getToken()),
   });
   assertEquals(res.status, 200);
 });
 
 Deno.test("[conformance] putRecord creates if not exists, updates if exists", async () => {
-  const signer = new MockSigner();
-  const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
-  const did = signer.did();
+  const kp = await Secp256k1Keypair.create();
+  const factory = createRepoFactory({ storage: new MemoryStorage(), signer: signerFromKeypair(kp) });
+  const pdsDid = signerFromKeypair(kp).did();
+  const { did, getToken } = await createAccountAndToken(factory, pdsDid);
 
   const putRes1 = await factory.app.request("/xrpc/com.atproto.repo.putRecord", {
     method: "POST",
     body: JSON.stringify({ repo: did, collection: "app.bsky.actor.profile", rkey: "self", record: { displayName: "Alice" } }),
-    headers: buildHeaders(did),
+    headers: authHeaders(await getToken()),
   });
   assertEquals(putRes1.status, 200);
   const putData1 = await putRes1.json() as { uri: string; cid: string };
@@ -210,7 +229,7 @@ Deno.test("[conformance] putRecord creates if not exists, updates if exists", as
   const putRes2 = await factory.app.request("/xrpc/com.atproto.repo.putRecord", {
     method: "POST",
     body: JSON.stringify({ repo: did, collection: "app.bsky.actor.profile", rkey: "self", record: { displayName: "Alice2", description: "Updated" } }),
-    headers: buildHeaders(did),
+    headers: authHeaders(await getToken()),
   });
   assertEquals(putRes2.status, 200);
 
@@ -223,9 +242,10 @@ Deno.test("[conformance] putRecord creates if not exists, updates if exists", as
 });
 
 Deno.test("[conformance] applyWrites batch creates multiple records", async () => {
-  const signer = new MockSigner();
-  const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
-  const did = signer.did();
+  const kp = await Secp256k1Keypair.create();
+  const factory = createRepoFactory({ storage: new MemoryStorage(), signer: signerFromKeypair(kp) });
+  const pdsDid = signerFromKeypair(kp).did();
+  const { did, getToken } = await createAccountAndToken(factory, pdsDid);
 
   const res = await factory.app.request("/xrpc/com.atproto.repo.applyWrites", {
     method: "POST",
@@ -236,7 +256,7 @@ Deno.test("[conformance] applyWrites batch creates multiple records", async () =
         { $type: "com.atproto.repo.applyWrites#create", collection: "app.bsky.feed.post", value: { $type: "app.bsky.feed.post", text: "B", createdAt: new Date().toISOString() } },
       ],
     }),
-    headers: buildHeaders(did),
+    headers: authHeaders(await getToken()),
   });
   assertEquals(res.status, 200);
   const data = await res.json() as { results: Array<{ $type: string; uri: string; cid: string }> };

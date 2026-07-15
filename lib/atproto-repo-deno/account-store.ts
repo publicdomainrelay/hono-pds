@@ -15,8 +15,12 @@ function b64urlToStandard(b64urlStr: string): string {
   return s;
 }
 
-async function signJwt(signer: Signer, payload: Record<string, unknown>): Promise<string> {
-  const header = { typ: "JWT", alg: "ES256K" };
+function makeHeader(typ: string, kid?: string): { typ: string; alg: string; kid?: string } {
+  return kid ? { typ, alg: "ES256K", kid } : { typ, alg: "ES256K" };
+}
+
+async function signJwt(signer: Signer, payload: Record<string, unknown>, typ: string, kid?: string): Promise<string> {
+  const header = makeHeader(typ, kid);
   const signingInput = `${b64urlJson(header)}.${b64urlJson(payload)}`;
   const sig = await signer.sign(utf8Encode(signingInput));
   return `${signingInput}.${b64url(sig)}`;
@@ -45,7 +49,8 @@ export interface AccountStore {
     accessJwt: string;
     refreshJwt: string;
   }>;
-  validateAccessJwt(token: string): { did: Did; handle: string } | null;
+  validateAccessJwt(token: string): Promise<{ did: Did; handle: string } | null>;
+  validateRefreshJwt(token: string): Promise<{ did: Did; handle: string } | null>;
 }
 
 function createAccountStore(pdsDid: Did, pdsSigner: Signer): AccountStore {
@@ -74,6 +79,26 @@ function createAccountStore(pdsDid: Did, pdsSigner: Signer): AccountStore {
       key, 256,
     );
     return b64url(new Uint8Array(bits)) === record.passwordHash;
+  }
+
+  async function validateToken(token: string, expectedTyp: string) {
+    try {
+      const parts = token.split(".");
+      if (parts.length !== 3) return null;
+      const headerJson = atob(b64urlToStandard(parts[0]));
+      const header = JSON.parse(headerJson);
+      if (header.typ !== expectedTyp) return null;
+      const payloadJson = atob(b64urlToStandard(parts[1]));
+      const payload = JSON.parse(payloadJson);
+      if (payload.exp && Math.floor(Date.now() / 1000) > payload.exp) return null;
+      if (!payload.sub || !payload.handle) return null;
+      const { verifySignature } = await import("@atproto/crypto");
+      const signingInput = utf8Encode(`${parts[0]}.${parts[1]}`);
+      const sigBytes = Uint8Array.from(atob(b64urlToStandard(parts[2])), (c) => c.charCodeAt(0));
+      const valid = await verifySignature(pdsDid, signingInput, sigBytes as unknown as Uint8Array<ArrayBuffer>);
+      if (!valid) return null;
+      return { did: payload.sub, handle: payload.handle };
+    } catch { return null; }
   }
 
   return {
@@ -120,6 +145,7 @@ function createAccountStore(pdsDid: Did, pdsSigner: Signer): AccountStore {
 
     async createSessionTokens(did: Did, handle: string) {
       const now = Math.floor(Date.now() / 1000);
+      const kid = `${pdsDid}#atproto`;
       const accessPayload = {
         iss: pdsDid, sub: did, handle, aud: pdsDid,
         iat: now, exp: now + 900,
@@ -131,22 +157,18 @@ function createAccountStore(pdsDid: Did, pdsSigner: Signer): AccountStore {
         jti: b64url(crypto.getRandomValues(new Uint8Array(16))),
       };
       const [accessJwt, refreshJwt] = await Promise.all([
-        signJwt(pdsSigner, accessPayload),
-        signJwt(pdsSigner, refreshPayload),
+        signJwt(pdsSigner, accessPayload, "at+jwt", kid),
+        signJwt(pdsSigner, refreshPayload, "refresh+jwt", kid),
       ]);
       return { accessJwt, refreshJwt };
     },
 
-    validateAccessJwt(token: string) {
-      try {
-        const parts = token.split(".");
-        if (parts.length !== 3) return null;
-        const payloadJson = atob(b64urlToStandard(parts[1]));
-        const payload = JSON.parse(payloadJson);
-        if (payload.exp && Math.floor(Date.now() / 1000) > payload.exp) return null;
-        if (!payload.sub || !payload.handle) return null;
-        return { did: payload.sub, handle: payload.handle };
-      } catch { return null; }
+    async validateAccessJwt(token: string) {
+      return validateToken(token, "at+jwt");
+    },
+
+    async validateRefreshJwt(token: string) {
+      return validateToken(token, "refresh+jwt");
     },
   };
 }

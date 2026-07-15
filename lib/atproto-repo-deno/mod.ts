@@ -9,7 +9,7 @@ export {
   verifierFromKeypair,
 } from "./signer.ts";
 
-export { signServiceAuth } from "./service-auth.ts";
+export { signServiceAuth, verifyServiceAuthToken } from "./service-auth.ts";
 export type { ServiceAuthOptions } from "./service-auth.ts";
 
 export { Repo } from "./repo.ts";

@@ -23,6 +23,16 @@ async function getDid(pds: PdsSandbox): Promise<string> {
   return data.did;
 }
 
+async function createAccount(pds: PdsSandbox): Promise<{ did: string; accessJwt: string }> {
+  const res = await pds.fetch(new Request(url("/xrpc/com.atproto.server.createAccount"), {
+    method: "POST",
+    body: JSON.stringify({ handle: "sbox-user", password: "sbox-pw" }),
+    headers: headers(),
+  }));
+  const data = await res.json() as { did: string; accessJwt: string };
+  return { did: data.did, accessJwt: data.accessJwt };
+}
+
 // --- Read-only endpoints ---
 
 Deno.test("[conformance:sandbox] health endpoint returns version", async () => {
@@ -112,11 +122,11 @@ Deno.test("[conformance:sandbox] getServiceAuth returns 400 for missing aud", as
 Deno.test("[conformance:sandbox] createRecord returns uri and cid", async () => {
   const pds = await createPdsSandbox();
   try {
-    const did = await getDid(pds);
+    const { did, accessJwt } = await createAccount(pds);
     const res = await pds.fetch(new Request(url("/xrpc/com.atproto.repo.createRecord"), {
       method: "POST",
       body: JSON.stringify({ repo: did, collection: "app.bsky.feed.post", record: { text: "Hello", createdAt: new Date().toISOString() } }),
-      headers: headers(),
+      headers: headers({ authorization: `Bearer ${accessJwt}` }),
     }));
     assertEquals(res.status, 200);
     const data = await res.json() as { uri: string; cid: string };
@@ -132,11 +142,11 @@ Deno.test("[conformance:sandbox] createRecord returns uri and cid", async () => 
 Deno.test("[conformance:sandbox] createRecord defaults $type to collection name", async () => {
   const pds = await createPdsSandbox();
   try {
-    const did = await getDid(pds);
+    const { did, accessJwt } = await createAccount(pds);
     const createRes = await pds.fetch(new Request(url("/xrpc/com.atproto.repo.createRecord"), {
       method: "POST",
       body: JSON.stringify({ repo: did, collection: "com.example.record", record: { foo: "bar" } }),
-      headers: headers(),
+      headers: headers({ authorization: `Bearer ${accessJwt}` }),
     }));
     assertEquals(createRes.status, 200);
     const createData = await createRes.json() as { uri: string };
@@ -158,7 +168,7 @@ Deno.test("[conformance:sandbox] createRecord defaults $type to collection name"
 Deno.test("[conformance:sandbox] createRecord getRecord round-trip preserves value", async () => {
   const pds = await createPdsSandbox();
   try {
-    const did = await getDid(pds);
+    const { did, accessJwt } = await createAccount(pds);
     const recordValue = {
       $type: "app.bsky.feed.post",
       text: "Hello, world!",
@@ -167,7 +177,7 @@ Deno.test("[conformance:sandbox] createRecord getRecord round-trip preserves val
     const createRes = await pds.fetch(new Request(url("/xrpc/com.atproto.repo.createRecord"), {
       method: "POST",
       body: JSON.stringify({ repo: did, collection: "app.bsky.feed.post", record: recordValue }),
-      headers: headers(),
+      headers: headers({ authorization: `Bearer ${accessJwt}` }),
     }));
     const createData = await createRes.json() as { uri: string; cid: string };
     const uriParts = createData.uri.split("/");
@@ -190,7 +200,7 @@ Deno.test("[conformance:sandbox] createRecord getRecord round-trip preserves val
 Deno.test("[conformance:sandbox] getRecord returns 400 for missing record", async () => {
   const pds = await createPdsSandbox();
   try {
-    const did = await getDid(pds);
+    const { did, accessJwt } = await createAccount(pds);
     const res = await pds.fetch(new Request(
       url(`/xrpc/com.atproto.repo.getRecord`, { repo: did, collection: "com.example.record", rkey: "nonexistent" }),
     ));
@@ -205,7 +215,7 @@ Deno.test("[conformance:sandbox] getRecord returns 400 for missing record", asyn
 Deno.test("[conformance:sandbox] listRecords returns paginated results with cursor", async () => {
   const pds = await createPdsSandbox();
   try {
-    const did = await getDid(pds);
+    const { did, accessJwt } = await createAccount(pds);
     for (let i = 0; i < 5; i++) {
       const r = await pds.fetch(new Request(url("/xrpc/com.atproto.repo.createRecord"), {
         method: "POST",
@@ -213,7 +223,7 @@ Deno.test("[conformance:sandbox] listRecords returns paginated results with curs
           repo: did, collection: "app.bsky.feed.post",
           record: { $type: "app.bsky.feed.post", text: `Post ${i}`, createdAt: new Date().toISOString() },
         }),
-        headers: headers(),
+        headers: headers({ authorization: `Bearer ${accessJwt}` }),
       }));
       assertEquals(r.status, 200);
     }
@@ -240,14 +250,14 @@ Deno.test("[conformance:sandbox] listRecords returns paginated results with curs
 Deno.test("[conformance:sandbox] describeRepo returns did, handle, collections, head", async () => {
   const pds = await createPdsSandbox();
   try {
-    const did = await getDid(pds);
+    const { did, accessJwt } = await createAccount(pds);
     const r = await pds.fetch(new Request(url("/xrpc/com.atproto.repo.createRecord"), {
       method: "POST",
       body: JSON.stringify({
         repo: did, collection: "com.example.alpha",
         record: { $type: "com.example.alpha", v: 1 },
       }),
-      headers: headers(),
+      headers: headers({ authorization: `Bearer ${accessJwt}` }),
     }));
     assertEquals(r.status, 200);
 
@@ -268,11 +278,11 @@ Deno.test("[conformance:sandbox] describeRepo returns did, handle, collections, 
 Deno.test("[conformance:sandbox] deleteRecord no-ops if record does not exist", async () => {
   const pds = await createPdsSandbox();
   try {
-    const did = await getDid(pds);
+    const { did, accessJwt } = await createAccount(pds);
     const res = await pds.fetch(new Request(url("/xrpc/com.atproto.repo.deleteRecord"), {
       method: "POST",
       body: JSON.stringify({ repo: did, collection: "com.example.record", rkey: "nonexistent" }),
-      headers: headers(),
+      headers: headers({ authorization: `Bearer ${accessJwt}` }),
     }));
     assertEquals(res.status, 200);
   } finally {
@@ -283,14 +293,14 @@ Deno.test("[conformance:sandbox] deleteRecord no-ops if record does not exist", 
 Deno.test("[conformance:sandbox] deleteRecord removes existing record", async () => {
   const pds = await createPdsSandbox();
   try {
-    const did = await getDid(pds);
+    const { did, accessJwt } = await createAccount(pds);
     const createRes = await pds.fetch(new Request(url("/xrpc/com.atproto.repo.createRecord"), {
       method: "POST",
       body: JSON.stringify({
         repo: did, collection: "com.example.tmp",
         record: { $type: "com.example.tmp", text: "to-delete" },
       }),
-      headers: headers(),
+      headers: headers({ authorization: `Bearer ${accessJwt}` }),
     }));
     const createData = await createRes.json() as { uri: string };
     const uriParts = createData.uri.split("/");
@@ -299,7 +309,7 @@ Deno.test("[conformance:sandbox] deleteRecord removes existing record", async ()
     const delRes = await pds.fetch(new Request(url("/xrpc/com.atproto.repo.deleteRecord"), {
       method: "POST",
       body: JSON.stringify({ repo: did, collection: "com.example.tmp", rkey }),
-      headers: headers(),
+      headers: headers({ authorization: `Bearer ${accessJwt}` }),
     }));
     assertEquals(delRes.status, 200);
 
@@ -315,7 +325,7 @@ Deno.test("[conformance:sandbox] deleteRecord removes existing record", async ()
 Deno.test("[conformance:sandbox] putRecord creates if not exists, updates if exists", async () => {
   const pds = await createPdsSandbox();
   try {
-    const did = await getDid(pds);
+    const { did, accessJwt } = await createAccount(pds);
 
     const putRes1 = await pds.fetch(new Request(url("/xrpc/com.atproto.repo.putRecord"), {
       method: "POST",
@@ -323,7 +333,7 @@ Deno.test("[conformance:sandbox] putRecord creates if not exists, updates if exi
         repo: did, collection: "app.bsky.actor.profile", rkey: "self",
         record: { displayName: "Alice" },
       }),
-      headers: headers(),
+      headers: headers({ authorization: `Bearer ${accessJwt}` }),
     }));
     assertEquals(putRes1.status, 200);
     const putData1 = await putRes1.json() as { uri: string; cid: string };
@@ -341,7 +351,7 @@ Deno.test("[conformance:sandbox] putRecord creates if not exists, updates if exi
         repo: did, collection: "app.bsky.actor.profile", rkey: "self",
         record: { displayName: "Alice2", description: "Updated" },
       }),
-      headers: headers(),
+      headers: headers({ authorization: `Bearer ${accessJwt}` }),
     }));
     assertEquals(putRes2.status, 200);
 
@@ -359,7 +369,7 @@ Deno.test("[conformance:sandbox] putRecord creates if not exists, updates if exi
 Deno.test("[conformance:sandbox] applyWrites batch creates multiple records", async () => {
   const pds = await createPdsSandbox();
   try {
-    const did = await getDid(pds);
+    const { did, accessJwt } = await createAccount(pds);
     const res = await pds.fetch(new Request(url("/xrpc/com.atproto.repo.applyWrites"), {
       method: "POST",
       body: JSON.stringify({
@@ -369,7 +379,7 @@ Deno.test("[conformance:sandbox] applyWrites batch creates multiple records", as
           { $type: "com.atproto.repo.applyWrites#create", collection: "app.bsky.feed.post", value: { $type: "app.bsky.feed.post", text: "B", createdAt: new Date().toISOString() } },
         ],
       }),
-      headers: headers(),
+      headers: headers({ authorization: `Bearer ${accessJwt}` }),
     }));
     assertEquals(res.status, 200);
     const data = await res.json() as { results: Array<{ $type: string; uri: string; cid: string }> };
@@ -386,14 +396,13 @@ Deno.test("[conformance:sandbox] applyWrites batch creates multiple records", as
 Deno.test("[conformance:sandbox] createRecord with swapCommit via describeRepo head", async () => {
   const pds = await createPdsSandbox();
   try {
-    const did = await getDid(pds);
-
+    const { did, accessJwt } = await createAccount(pds);
     const descRes = await pds.fetch(new Request(
       url(`/xrpc/com.atproto.repo.describeRepo`, { repo: did }),
     ));
     const descData = await descRes.json() as { head: string | null };
-    // empty repo has null head
-    assertEquals(descData.head, null);
+    // After auto-repo creation, head is a valid commit CID (not null)
+    assertEquals(typeof descData.head, "string");
 
     const res = await pds.fetch(new Request(url("/xrpc/com.atproto.repo.createRecord"), {
       method: "POST",
@@ -402,7 +411,7 @@ Deno.test("[conformance:sandbox] createRecord with swapCommit via describeRepo h
         record: { text: "Swap test", createdAt: new Date().toISOString() },
         swapCommit: descData.head,
       }),
-      headers: headers(),
+      headers: headers({ authorization: `Bearer ${accessJwt}` }),
     }));
     assertEquals(res.status, 200);
   } finally {
@@ -413,7 +422,7 @@ Deno.test("[conformance:sandbox] createRecord with swapCommit via describeRepo h
 Deno.test("[conformance:sandbox] unknown collection creates record without schema validation", async () => {
   const pds = await createPdsSandbox();
   try {
-    const did = await getDid(pds);
+    const { did, accessJwt } = await createAccount(pds);
     const res = await pds.fetch(new Request(url("/xrpc/com.atproto.repo.createRecord"), {
       method: "POST",
       body: JSON.stringify({
@@ -421,7 +430,7 @@ Deno.test("[conformance:sandbox] unknown collection creates record without schem
         collection: "com.example.novel-nsid",
         record: { $type: "com.example.novel-nsid", arbitrary: true, nested: { data: [1, 2, 3] } },
       }),
-      headers: headers(),
+      headers: headers({ authorization: `Bearer ${accessJwt}` }),
     }));
     assertEquals(res.status, 200);
     const data = await res.json() as { uri: string; cid: string };
@@ -438,20 +447,19 @@ Deno.test("[conformance:sandbox] unknown collection creates record without schem
   }
 });
 
-Deno.test("[conformance:sandbox] createRecord uses server DID regardless of repo field", async () => {
+Deno.test("[conformance:sandbox] createRecord uses authenticated account DID", async () => {
   const pds = await createPdsSandbox();
   try {
-    const did = await getDid(pds);
-    // The sandbox sets requesterDid from the server's configured DID, not from
-    // the repo field. Records are always created under the server's own DID.
+    const { did, accessJwt } = await createAccount(pds);
+    // Records are created under the authenticated account's DID
     const res = await pds.fetch(new Request(url("/xrpc/com.atproto.repo.createRecord"), {
       method: "POST",
       body: JSON.stringify({
-        repo: "did:key:zNotMyDid",
+        repo: did,
         collection: "app.bsky.feed.post",
-        record: { text: "Server DID used", createdAt: new Date().toISOString() },
+        record: { text: "Auth DID used", createdAt: new Date().toISOString() },
       }),
-      headers: headers(),
+      headers: headers({ authorization: `Bearer ${accessJwt}` }),
     }));
     assertEquals(res.status, 200);
     const data = await res.json() as { uri: string; cid: string };
@@ -464,11 +472,11 @@ Deno.test("[conformance:sandbox] createRecord uses server DID regardless of repo
 Deno.test("[conformance:sandbox] empty writes array returns empty results", async () => {
   const pds = await createPdsSandbox();
   try {
-    const did = await getDid(pds);
+    const { did, accessJwt } = await createAccount(pds);
     const res = await pds.fetch(new Request(url("/xrpc/com.atproto.repo.applyWrites"), {
       method: "POST",
       body: JSON.stringify({ repo: did, writes: [] }),
-      headers: headers(),
+      headers: headers({ authorization: `Bearer ${accessJwt}` }),
     }));
     assertEquals(res.status, 200);
     const data = await res.json() as { results: unknown[] };

@@ -35,5 +35,12 @@ export {
 } from "./tid.ts";
 
 export { encode, decode, cidLink, isCidLink, cidFromLink } from "./dag-cbor.ts";
+export {
+  encode as drislEncode,
+  decode as drislDecode,
+  cidLink as drislCidLink,
+  isCidLink as isDrislCidLink,
+  cidFromLink as drislCidFromLink,
+} from "./drisl-cbor.ts";
 
 export type { Subscription, SubscribeHandler } from "./subscribe-types.ts";

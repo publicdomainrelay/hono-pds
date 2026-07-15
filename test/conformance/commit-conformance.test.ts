@@ -1,7 +1,7 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { createRepoFactory } from "@publicdomainrelay/hono-factory-atproto-repo-deno";
 import { MemoryStorage } from "@publicdomainrelay/atproto-repo-deno";
-import { encode as cborEncode, decode as cborDecode, cidFromDigest, cidDigest } from "@publicdomainrelay/atproto-repo-common";
+import { drislEncode, drislDecode, cidFromDigest, cidDigest } from "@publicdomainrelay/atproto-repo-common";
 import { createVerifier, signerFromKeypair } from "@publicdomainrelay/atproto-repo-deno";
 import type { Signer, Bytes, Did } from "@publicdomainrelay/atproto-repo-abc";
 import { Secp256k1Keypair } from "@atproto/crypto";
@@ -20,7 +20,7 @@ Deno.test("[conformance] commit CBOR structure matches version:3", async () => {
 
   const commitBytes = await storage.get(evt.commit);
   assertExists(commitBytes);
-  const commit = cborDecode(commitBytes) as Record<string, unknown>;
+  const commit = drislDecode(commitBytes) as Record<string, unknown>;
 
   assertEquals(commit.did, did);
   assertEquals(commit.version, 3);
@@ -50,7 +50,6 @@ Deno.test("[conformance] commit CID is reproducible from stored bytes", async ()
       commitBytes.buffer.slice(commitBytes.byteOffset, commitBytes.byteOffset + commitBytes.byteLength) as ArrayBuffer,
     ),
   );
-  const { cidFromDigest } = await import("@publicdomainrelay/atproto-repo-common");
   const recomputedCid = cidFromDigest(digest);
   assertEquals(recomputedCid, evt.commit);
 });
@@ -70,7 +69,7 @@ Deno.test("[conformance] commit signature verifies with did:key", async () => {
 
   const commitBytes = await storage.get(evt.commit);
   assertExists(commitBytes);
-  const commit = cborDecode(commitBytes) as Record<string, unknown>;
+  const commit = drislDecode(commitBytes) as Record<string, unknown>;
   const sig = commit.sig as Uint8Array;
 
   const dataForSigning: Record<string, unknown> = {
@@ -80,7 +79,7 @@ Deno.test("[conformance] commit signature verifies with did:key", async () => {
     rev: commit.rev,
     prev: commit.prev ?? null,
   };
-  const signingBytes = cborEncode(dataForSigning);
+  const signingBytes = drislEncode(dataForSigning);
   const isValid = await verifier.verify(did, signingBytes, sig);
   assertEquals(isValid, true);
 });
@@ -98,7 +97,7 @@ Deno.test("[conformance] commit has prev pointing to previous commit", async () 
   }]);
 
   const commit1Bytes = await storage.get(evt1.commit);
-  const commit1 = cborDecode(commit1Bytes!) as Record<string, unknown>;
+  const commit1 = drislDecode(commit1Bytes!) as Record<string, unknown>;
   assertEquals(commit1.prev, null);
 
   const evt2 = await factory.api.applyWrites(did, [{
@@ -107,7 +106,7 @@ Deno.test("[conformance] commit has prev pointing to previous commit", async () 
   }]);
 
   const commit2Bytes = await storage.get(evt2.commit);
-  const commit2 = cborDecode(commit2Bytes!) as Record<string, unknown>;
+  const commit2 = drislDecode(commit2Bytes!) as Record<string, unknown>;
   assertEquals(typeof (commit2.prev as { $link: string }).$link, "string");
   assertEquals((commit2.prev as { $link: string }).$link, evt1.commit);
 });
@@ -154,7 +153,7 @@ Deno.test("[conformance] empty repo commits have null prev and since", async () 
   assertEquals(evt.since, null);
 
   const commitBytes = await storage.get(evt.commit);
-  const commit = cborDecode(commitBytes!) as Record<string, unknown>;
+  const commit = drislDecode(commitBytes!) as Record<string, unknown>;
   assertEquals(commit.prev, null);
 });
 

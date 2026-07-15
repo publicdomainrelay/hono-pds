@@ -32,6 +32,7 @@ export interface CommitOp {
   action: "create" | "update" | "delete";
   path: string;
   cid: Cid | null;
+  prev: Cid | null;
 }
 
 export interface CommitEvent {
@@ -41,12 +42,15 @@ export interface CommitEvent {
   since: Tid | null;
   blocks: Bytes;
   ops: CommitOp[];
+  prevData: Cid | null;
 }
 
 export type SequencedFrame = Record<string, unknown>;
 
 export interface Sequencer {
   append(evt: CommitEvent): SequencedFrame;
+  appendIdentity(did: Did, handle?: string): SequencedFrame;
+  appendAccount(did: Did, active: boolean, status?: string): SequencedFrame;
   backfill(since?: number): AsyncIterable<SequencedFrame>;
   live(): AsyncIterable<SequencedFrame>;
 }

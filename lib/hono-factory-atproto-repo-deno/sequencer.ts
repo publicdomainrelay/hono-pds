@@ -15,7 +15,6 @@ export class FirehoseSequencer implements Sequencer {
   append(evt: CommitEvent): SequencedFrame {
     this.#seq++;
     const frame: SequencedFrame = {
-      $type: "com.atproto.sync.subscribeRepos#commit",
       seq: this.#seq,
       repo: evt.repo,
       commit: { $link: evt.commit },
@@ -26,14 +25,46 @@ export class FirehoseSequencer implements Sequencer {
         action: op.action,
         path: op.path,
         cid: op.cid ? { $link: op.cid } : null,
-        prev: null,
+        prev: op.prev ? { $link: op.prev } : null,
       })),
+      tooBig: false,
+      blobs: [],
+      prevData: evt.prevData ? { $link: evt.prevData } : null,
       time: now(),
     };
     this.#backlog.push(frame);
     if (this.#backlog.length > MAX_BACKLOG) {
       this.#backlog.shift();
     }
+    this.#bus.publish(frame);
+    return frame;
+  }
+
+  appendIdentity(did: string, handle?: string): SequencedFrame {
+    this.#seq++;
+    const frame: SequencedFrame = {
+      seq: this.#seq,
+      did,
+      time: now(),
+      handle: handle ?? null,
+    };
+    this.#backlog.push(frame);
+    if (this.#backlog.length > MAX_BACKLOG) this.#backlog.shift();
+    this.#bus.publish(frame);
+    return frame;
+  }
+
+  appendAccount(did: string, active: boolean, status?: string): SequencedFrame {
+    this.#seq++;
+    const frame: SequencedFrame = {
+      seq: this.#seq,
+      did,
+      time: now(),
+      active,
+      status: status ?? (active ? "active" : "deactivated"),
+    };
+    this.#backlog.push(frame);
+    if (this.#backlog.length > MAX_BACKLOG) this.#backlog.shift();
     this.#bus.publish(frame);
     return frame;
   }
