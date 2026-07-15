@@ -78,10 +78,11 @@ export class FirehoseSequencer implements Sequencer {
     }
   }
 
-  async *live(): AsyncIterable<SequencedFrame> {
+  live(): AsyncIterable<SequencedFrame> {
     const queue: SequencedFrame[] = [];
     let resolve: ((frame: SequencedFrame) => void) | null = null;
-
+    // Subscribe IMMEDIATELY (not lazily) so frames arriving between
+    // backfill() and the first live .next() are captured.
     const dispose = this.#bus.subscribe((frame) => {
       if (resolve) {
         resolve(frame);
@@ -90,22 +91,23 @@ export class FirehoseSequencer implements Sequencer {
         queue.push(frame);
       }
     });
-
-    try {
-      while (true) {
-        if (queue.length > 0) {
-          yield queue.shift()!;
-        } else {
-          yield await new Promise<SequencedFrame>((r) => {
-            resolve = r;
-            // If a frame landed between the empty check and resolve assignment,
-            // resolve immediately so we don't wait for the next frame.
-            if (queue.length > 0) r(queue.shift()!);
-          });
-        }
-      }
-    } finally {
-      dispose();
-    }
+    let done = false;
+    return {
+      [Symbol.asyncIterator]() { return this; },
+      async next(): Promise<IteratorResult<SequencedFrame>> {
+        if (done) return { value: undefined, done: true };
+        if (queue.length > 0) return { value: queue.shift()!, done: false };
+        const value = await new Promise<SequencedFrame>((r) => {
+          resolve = r;
+          if (queue.length > 0) r(queue.shift()!);
+        });
+        return { value, done: false };
+      },
+      async return(): Promise<IteratorResult<SequencedFrame>> {
+        done = true;
+        dispose();
+        return { value: undefined, done: true };
+      },
+    };
   }
 }
