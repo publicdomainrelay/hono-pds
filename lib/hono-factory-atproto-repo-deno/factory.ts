@@ -60,6 +60,9 @@ export interface RepoFactoryOptions {
   adminPassword?: string;
   /** PLC directory URL for did:plc account creation. Without this, did:key is used. */
   plcDirectoryUrl?: string;
+  /** Firehose subscribeRepos wire format. "drisl" (default) for binary DRISL frames;
+   *  "json" for JSON string frames (compatible with atproto-relay and firehose watchers). */
+  subscribeReposFormat?: "drisl" | "json";
 }
 
 export interface RepoFactory {
@@ -794,20 +797,25 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     const cursorQ = c.req.query("cursor");
     const params: Record<string, string> = {};
     if (cursorQ) params.cursor = cursorQ;
+    const useJson = opts.subscribeReposFormat === "json";
     let unsubscribe: (() => void) | void = undefined;
     return {
       onOpen(_evt, ws) {
         unsubscribe = subscribe({ nsid: "com.atproto.sync.subscribeRepos", params }, (frame) => {
           try {
-            // Detect frame type for header
-            const frameType = (frame as Record<string, unknown>).repo != null ? "#commit"
-              : (frame as Record<string, unknown>).active != null ? "#account" : "#identity";
-            const header = drislEncode({ op: 1, t: frameType });
-            const body = drislEncode(frame);
-            const wireFrame = new Uint8Array(header.length + body.length);
-            wireFrame.set(header, 0);
-            wireFrame.set(body, header.length);
-            ws.send(wireFrame as unknown as ArrayBuffer);
+            if (useJson) {
+              ws.send(JSON.stringify(frame));
+            } else {
+              // Detect frame type for header
+              const frameType = (frame as Record<string, unknown>).repo != null ? "#commit"
+                : (frame as Record<string, unknown>).active != null ? "#account" : "#identity";
+              const header = drislEncode({ op: 1, t: frameType });
+              const body = drislEncode(frame);
+              const wireFrame = new Uint8Array(header.length + body.length);
+              wireFrame.set(header, 0);
+              wireFrame.set(body, header.length);
+              ws.send(wireFrame as unknown as ArrayBuffer);
+            }
           } catch { /* ws closed */ }
         });
       },
