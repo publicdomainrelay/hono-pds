@@ -80,6 +80,7 @@ export class FirehoseSequencer implements Sequencer {
 
   async *live(): AsyncIterable<SequencedFrame> {
     const queue: SequencedFrame[] = [];
+    let lastSeq = 0;
     let resolve: ((frame: SequencedFrame) => void) | null = null;
 
     const dispose = this.#bus.subscribe((frame) => {
@@ -93,10 +94,27 @@ export class FirehoseSequencer implements Sequencer {
 
     try {
       while (true) {
+        // Drain backlog frames arrived since last yield — covers the gap
+        // between backfill() completion and live() subscription, and the
+        // race where a frame lands in queue between the empty check and
+        // resolve assignment.
+        for (const f of this.#backlog) {
+          if (f.seq > lastSeq) {
+            lastSeq = f.seq;
+            yield f;
+          }
+        }
         if (queue.length > 0) {
-          yield queue.shift()!;
+          const f = queue.shift()!;
+          lastSeq = f.seq;
+          yield f;
         } else {
-          yield await new Promise<SequencedFrame>((r) => { resolve = r; });
+          yield await new Promise<SequencedFrame>((r) => {
+            resolve = r;
+            // If a frame landed between the empty check and resolve assignment,
+            // resolve immediately so we don't wait for the next frame.
+            if (queue.length > 0) r(queue.shift()!);
+          });
         }
       }
     } finally {
