@@ -313,7 +313,7 @@ export function createDpopVerifier(): DpopVerifier {
     const valid = await crypto.subtle.verify(
       { name: "ECDSA", hash: { name: "SHA-256" } },
       publicKey,
-      sigBytes,
+      new Uint8Array(sigBytes),
       new Uint8Array(signingInput),
     );
     if (!valid) return null;
