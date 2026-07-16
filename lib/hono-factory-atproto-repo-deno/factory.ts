@@ -10,7 +10,7 @@ import { signServiceAuth, verifyServiceAuthToken } from "@publicdomainrelay/atpr
 import { createAccountStore } from "@publicdomainrelay/atproto-repo-deno";
 import type { AccountStore } from "@publicdomainrelay/atproto-repo-deno";
 import type { SubscribeHandler } from "@publicdomainrelay/atproto-repo-common";
-import { drislEncode } from "@publicdomainrelay/atproto-repo-common";
+import { base32Encode, drislEncode, encode as cborEncode } from "@publicdomainrelay/atproto-repo-common";
 import { mountRepoRoutes } from "./repo-handlers.ts";
 import { mountSyncRoutes } from "./sync-handlers.ts";
 import { FirehoseSequencer } from "./sequencer.ts";
@@ -94,6 +94,44 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
     if (parts.length !== 3) return null;
     return JSON.parse(atob(b64urlToStandard(parts[1])));
   } catch { return null; }
+}
+
+function bytesToBase64url(bytes: Uint8Array): string {
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+interface PlcGenesis {
+  did: Did;
+  op: Record<string, unknown>;
+}
+
+/**
+ * did:plc genesis per spec v0.3.0: the identifier is
+ * base32(sha256(dag-cbor(signed op))[0..15]), and the op is published at
+ * `POST {plcDirectoryUrl}/{did}` — the derived did:plc, never the rotation key.
+ */
+async function buildPlcGenesis(
+  kp: { did: () => string; sign: (b: Uint8Array) => Promise<Uint8Array> },
+  opts: { pdsEndpoint: string; handle?: string },
+): Promise<PlcGenesis> {
+  const rotationKey = kp.did();
+  const unsigned = {
+    type: "plc_operation",
+    rotationKeys: [rotationKey],
+    verificationMethods: { atproto: rotationKey },
+    alsoKnownAs: opts.handle ? [`at://${opts.handle}`] : [],
+    services: {
+      atproto_pds: { type: "AtprotoPersonalDataServer", endpoint: opts.pdsEndpoint },
+    },
+    prev: null,
+  };
+  const sig = bytesToBase64url(await kp.sign(cborEncode(unsigned)));
+  const op = { ...unsigned, sig };
+  const signedBytes = new Uint8Array(cborEncode(op));
+  const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", signedBytes.buffer));
+  return { did: `did:plc:${base32Encode(hash.slice(0, 15))}` as Did, op };
 }
 
 export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
@@ -247,35 +285,40 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
       if (plcDirectoryUrl) {
         const { Secp256k1Keypair } = await import("@atproto/crypto");
         const kp = await Secp256k1Keypair.create({ exportable: true });
-        const rotationKey = kp.did();
-        const genesisOp = {
-          type: "plc_operation",
-          rotationKeys: [rotationKey],
-          verificationMethods: { atproto: rotationKey },
-          services: { atproto_pds: { type: "AtprotoPersonalDataServer", endpoint: plcDirectoryUrl } },
-          prev: null,
-          sig: "",
+        // The genesis op advertises where this account's repo actually lives.
+        // publicHostname wins; otherwise trust the Host the client reached us on,
+        // which keeps ephemeral (port 0) deployments self-configuring.
+        const hostHeader = c.req.header("host") ?? "";
+        const authority = opts.publicHostname || hostHeader;
+        if (!authority) {
+          return c.json(
+            { error: "InvalidRequest", message: "cannot determine PDS endpoint: no publicHostname or Host header" },
+            400,
+          );
+        }
+        const scheme = /^(localhost|127\.0\.0\.1|\[::1\])(:|$)/.test(authority) ? "http" : "https";
+        const { did: plcDid, op } = await buildPlcGenesis(kp, {
+          pdsEndpoint: `${scheme}://${authority}`,
+          handle,
+        });
+        const plcRes = await fetch(`${plcDirectoryUrl}/${plcDid}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(op),
+        });
+        if (!plcRes.ok) {
+          const detail = await plcRes.text().catch(() => "");
+          log.error("createAccount PLC genesis rejected", { did: plcDid, status: plcRes.status, detail });
+          return c.json(
+            { error: "InternalError", message: `PLC directory rejected genesis op: ${plcRes.status} ${detail}` },
+            500,
+          );
+        }
+        didOverride = plcDid;
+        signerOverride = {
+          did: () => plcDid,
+          sign: (bytes: Uint8Array) => kp.sign(bytes),
         };
-        const sig = await kp.sign(new TextEncoder().encode(JSON.stringify(genesisOp)));
-        // hex-encode the signature for PLC
-        const sigHex = Array.from(sig).map((b) => b.toString(16).padStart(2, "0")).join("");
-        genesisOp.sig = sigHex;
-        try {
-          const plcRes = await fetch(`${plcDirectoryUrl}/${rotationKey}`, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify(genesisOp),
-          });
-          if (plcRes.ok) {
-            const plcResult = await plcRes.json() as { did?: string };
-            const plcDid = plcResult.did ?? rotationKey;
-            didOverride = plcDid;
-            signerOverride = {
-              did: () => plcDid,
-              sign: (bytes: Uint8Array) => kp.sign(bytes),
-            };
-          }
-        } catch { /* PLC unreachable, fall through to did:key */ }
       }
       const result = await accountStore.createAccount({ handle, email, password, didOverride, signerOverride });
       userSigners.set(result.did, result.signer);
@@ -390,14 +433,23 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     const lxm = c.req.query("lxm") ?? undefined;
     const expQ = c.req.query("exp");
 
-    const authHeader = (c as { req: { header: (name: string) => string | undefined } }).req.header("authorization");
-    const token = extractBearer(authHeader);
+    // OAuth DPoP path: resolve signer from the authenticated user session
     let signer = opts.signer;
-    if (token) {
-      const result = await accountStore.validateAccessJwt(token);
-      if (result) {
-        const userSigner = userSigners.get(result.did);
-        if (userSigner) signer = userSigner;
+    const oauthDid = (c as unknown as { get: (k: string) => unknown }).get("oauthUserDid") as Did | undefined;
+    if (oauthDid) {
+      const userSigner = userSigners.get(oauthDid);
+      if (userSigner) signer = userSigner;
+    }
+    // Fall back to Bearer token (legacy access JWT)
+    if (signer === opts.signer) {
+      const authHeader = (c as { req: { header: (name: string) => string | undefined } }).req.header("authorization");
+      const token = extractBearer(authHeader);
+      if (token) {
+        const result = await accountStore.validateAccessJwt(token);
+        if (result) {
+          const userSigner = userSigners.get(result.did);
+          if (userSigner) signer = userSigner;
+        }
       }
     }
 
@@ -411,33 +463,14 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     return c.json({ token: serviceAuthToken });
   }
 
-  app.get("/xrpc/com.atproto.server.getServiceAuth", async (c) => {
-    return handleGetServiceAuth(c);
-  });
-
-  app.post("/xrpc/com.atproto.server.getServiceAuth", async (c) => {
-    const body = await c.req.json().catch(() => ({}));
-    const aud = body.aud as string | undefined;
-    if (!aud) {
-      return c.json({ error: "InvalidRequest", message: 'missing required "aud" param' }, 400);
-    }
-    const lxm = body.lxm as string | undefined;
-    const authHeader = c.req.header("authorization");
-    const token = extractBearer(authHeader);
-    let signer = opts.signer;
-    if (token) {
-      // DPoP token: try OAuth validation. Falls back to PDS signer.
-      const result = await accountStore.validateAccessJwt(token);
-      if (result) {
-        const userSigner = userSigners.get(result.did);
-        if (userSigner) signer = userSigner;
-      }
-    }
-    const serviceAuthToken = await signServiceAuth(signer, { aud, lxm });
-    return c.json({ token: serviceAuthToken });
-  });
-
-  const requestCrawlDebounce = new Map<string, number>();
+  // requestCrawl is a registration, not a keepalive: a relay treats it as
+  // "(re)subscribe from scratch" and tears down the live firehose socket to obey.
+  // Announcing on every write therefore kept the relay in a re-subscribe loop and
+  // dropped commits streamed in the gap — records went missing exactly during a
+  // burst of writes. Announce once per crawler; the firehose carries the rest. A
+  // restarted PDS gets a fresh set and re-announces on its first write, which is
+  // when the relay actually does need to reset its cursor.
+  const announcedCrawlers = new Set<string>();
 
   const wiredRepo: RepoApi = {
     describe: (d) => repo.describe(d),
@@ -447,17 +480,18 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
       const evt = await repo.applyWrites(d, writes);
       sequencer.append(evt);
       if (opts.crawlers && opts.publicHostname) {
-        const now = Date.now();
         for (const rawUrl of opts.crawlers) {
-          const last = requestCrawlDebounce.get(rawUrl) ?? 0;
-          if (now - last < 1000) continue;
-          requestCrawlDebounce.set(rawUrl, now);
+          if (announcedCrawlers.has(rawUrl)) continue;
+          announcedCrawlers.add(rawUrl);
           const url = new URL("/xrpc/com.atproto.sync.requestCrawl", rawUrl);
           fetch(url, {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ hostname: opts.publicHostname }),
-          }).catch(() => {});
+          }).catch(() => {
+            // Let a failed announce be retried by the next write.
+            announcedCrawlers.delete(rawUrl);
+          });
         }
       }
       return evt;
@@ -780,6 +814,42 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
       await next();
     });
   }
+
+  // ── getServiceAuth (AFTER DPoP middleware so oauthUserDid is set) ──────
+
+  app.get("/xrpc/com.atproto.server.getServiceAuth", async (c) => {
+    return handleGetServiceAuth(c);
+  });
+
+  app.post("/xrpc/com.atproto.server.getServiceAuth", async (c) => {
+    const body = await c.req.json().catch(() => ({}));
+    const aud = body.aud as string | undefined;
+    if (!aud) {
+      return c.json({ error: "InvalidRequest", message: 'missing required "aud" param' }, 400);
+    }
+    const lxm = body.lxm as string | undefined;
+    // OAuth DPoP path: resolve signer from the authenticated user session
+    let signer = opts.signer;
+    const oauthDid = (c as unknown as { get: (k: string) => unknown }).get("oauthUserDid") as Did | undefined;
+    if (oauthDid) {
+      const userSigner = userSigners.get(oauthDid);
+      if (userSigner) signer = userSigner;
+    }
+    // Fall back to Bearer token (legacy access JWT)
+    if (signer === opts.signer) {
+      const authHeader = c.req.header("authorization");
+      const token = extractBearer(authHeader);
+      if (token) {
+        const result = await accountStore.validateAccessJwt(token);
+        if (result) {
+          const userSigner = userSigners.get(result.did);
+          if (userSigner) signer = userSigner;
+        }
+      }
+    }
+    const serviceAuthToken = await signServiceAuth(signer, { aud, lxm });
+    return c.json({ token: serviceAuthToken });
+  });
 
   // ── XRPC routes (AFTER DPoP middleware so middleware runs first) ────────
 
