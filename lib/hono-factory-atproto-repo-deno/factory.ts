@@ -425,7 +425,7 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
 
   // ── getServiceAuth ──────────────────────────────────────────────────
 
-  async function handleGetServiceAuth(c: { req: { query: (name: string) => string | undefined }; json: (body: unknown, status: number) => unknown }) {
+  async function handleGetServiceAuth(c: { req: { query: (name: string) => string | undefined }; json: (body: unknown, status?: number) => unknown }) {
     const aud = c.req.query("aud");
     if (!aud) {
       return c.json({ error: "InvalidRequest", message: 'missing required "aud" param' }, 400);
@@ -442,7 +442,7 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     }
     // Fall back to Bearer token (legacy access JWT)
     if (signer === opts.signer) {
-      const authHeader = (c as { req: { header: (name: string) => string | undefined } }).req.header("authorization");
+      const authHeader = (c as unknown as { req: { header: (name: string) => string | undefined } }).req.header("authorization");
       const token = extractBearer(authHeader);
       if (token) {
         const result = await accountStore.validateAccessJwt(token);
@@ -818,7 +818,7 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
   // ── getServiceAuth (AFTER DPoP middleware so oauthUserDid is set) ──────
 
   app.get("/xrpc/com.atproto.server.getServiceAuth", async (c) => {
-    return handleGetServiceAuth(c);
+    return handleGetServiceAuth(c) as unknown as Response;
   });
 
   app.post("/xrpc/com.atproto.server.getServiceAuth", async (c) => {

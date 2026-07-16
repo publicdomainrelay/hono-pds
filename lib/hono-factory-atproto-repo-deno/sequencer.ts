@@ -93,7 +93,7 @@ export class FirehoseSequencer implements Sequencer {
     });
     let done = false;
     return {
-      [Symbol.asyncIterator]() { return this; },
+      [Symbol.asyncIterator]() { return this as unknown as AsyncIterator<SequencedFrame>; },
       async next(): Promise<IteratorResult<SequencedFrame>> {
         if (done) return { value: undefined, done: true };
         if (queue.length > 0) return { value: queue.shift()!, done: false };
@@ -108,6 +108,6 @@ export class FirehoseSequencer implements Sequencer {
         dispose();
         return { value: undefined, done: true };
       },
-    };
+    } as unknown as AsyncIterable<SequencedFrame>;
   }
 }

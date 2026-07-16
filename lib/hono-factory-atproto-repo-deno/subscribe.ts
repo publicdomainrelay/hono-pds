@@ -14,15 +14,15 @@ export function createSubscribeHandler(sequencer: Sequencer): SubscribeHandler {
       // Backfill past frames.
       for await (const frame of sequencer.backfill(cursor)) {
         if (!active) return;
-        lastSeq = frame.seq;
+        lastSeq = frame.seq as number;
         emit(frame);
       }
 
       // Stream live frames, skipping those already emitted during backfill.
       for await (const frame of liveIter) {
         if (!active) return;
-        if (frame.seq > lastSeq) {
-          lastSeq = frame.seq;
+        if ((frame.seq as number) > lastSeq) {
+          lastSeq = frame.seq as number;
           emit(frame);
         }
       }
