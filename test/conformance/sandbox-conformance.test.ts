@@ -204,7 +204,7 @@ Deno.test("[conformance:sandbox] getRecord returns 400 for missing record", asyn
     const res = await pds.fetch(new Request(
       url(`/xrpc/com.atproto.repo.getRecord`, { repo: did, collection: "com.example.record", rkey: "nonexistent" }),
     ));
-    assertEquals(res.status, 400);
+    assertEquals(res.status, 404);
     const data = await res.json() as { error: string };
     assertEquals(data.error, "RecordNotFound");
   } finally {
@@ -316,7 +316,7 @@ Deno.test("[conformance:sandbox] deleteRecord removes existing record", async ()
     const getRes = await pds.fetch(new Request(
       url(`/xrpc/com.atproto.repo.getRecord`, { repo: did, collection: "com.example.tmp", rkey }),
     ));
-    assertEquals(getRes.status, 400);
+    assertEquals(getRes.status, 404);
   } finally {
     await pds.shutdown();
   }

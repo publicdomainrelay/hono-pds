@@ -137,7 +137,9 @@ Deno.test("[conformance] getRecord returns 404 for missing record", async () => 
   const res = await factory.app.request(
     `/xrpc/com.atproto.repo.getRecord?repo=${did}&collection=com.example.record&rkey=nonexistent`,
   );
-  assertEquals(res.status, 400);
+  // Missing resource -> 404 per the XRPC status code table; the error name
+  // carries the specific meaning.
+  assertEquals(res.status, 404);
   const data = await res.json() as { error: string };
   assertEquals(data.error, "RecordNotFound");
 });

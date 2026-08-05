@@ -139,3 +139,36 @@ Deno.test("Repo describeRepo collections", async () => {
   assertEquals(desc.collections.length, 2);
   assertEquals(desc.collections, ["com.example.alpha", "com.example.beta"]);
 });
+
+// A commit is read-modify-write over the repo head. Writes that interleave both
+// build the MST from the same root, so without serialization the last setHead
+// silently drops the other's records while still reporting success.
+Deno.test("Repo concurrent applyWrites to one repo keep every record", async () => {
+  const store = new MemoryStorage();
+  const signer = new MockSigner();
+  const repo = new Repo(store, signer);
+  const did = signer.did();
+
+  const rkeys = ["a", "b", "c", "d", "e"];
+  const events = await Promise.all(rkeys.map((rkey) =>
+    repo.applyWrites(did, [{
+      action: "create" as const,
+      collection: "com.example.record",
+      rkey,
+      record: { rkey },
+    }])
+  ));
+
+  for (const rkey of rkeys) {
+    const got = await repo.getRecord(did, "com.example.record", rkey);
+    assertExists(got, `record ${rkey} must survive concurrent commits`);
+    assertEquals((got.value as { rkey: string }).rkey, rkey);
+  }
+
+  const listed = await repo.listRecords(did, "com.example.record");
+  assertEquals(listed.records.length, rkeys.length);
+
+  // Each commit must build on the previous one, not fork off a shared parent.
+  const revs = new Set(events.map((e) => e.rev));
+  assertEquals(revs.size, rkeys.length, "each commit needs its own rev");
+});

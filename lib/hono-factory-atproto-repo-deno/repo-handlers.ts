@@ -1,10 +1,22 @@
 import type { Context, Hono } from "@hono/hono";
-import type { RepoApi, Did, WriteOp } from "@publicdomainrelay/atproto-repo-abc";
+import type { CommitEvent, RepoApi, Did, WriteOp } from "@publicdomainrelay/atproto-repo-abc";
 import { XrpcError } from "@publicdomainrelay/atproto-repo-abc";
 import { nextTid } from "@publicdomainrelay/atproto-repo-common";
 
 function requesterDid(c: Context): Did {
   return c.get("requesterDid" as never) as Did;
+}
+
+/**
+ * createRecord and putRecord return the CID of the record itself, not of the
+ * commit that carried it. Returning the commit CID makes every strongRef minted
+ * from a write disagree with the CID getRecord and listRecords report for the
+ * same record, so anything that later matches on a strongRef silently fails.
+ */
+function recordCidOf(evt: CommitEvent, index = 0): string {
+  const cid = evt.ops[index]?.cid;
+  if (!cid) throw new XrpcError("InvalidRequest", "write produced no record cid", 500);
+  return cid;
 }
 
 function defaultType(record: unknown, collection: string): unknown {
@@ -41,7 +53,7 @@ export function mountRepoRoutes(app: Hono, repo: RepoApi): void {
       record,
     }]);
     const uri = `at://${did}/${body.collection}/${rkey}`;
-    return c.json({ uri, cid: evt.commit });
+    return c.json({ uri, cid: recordCidOf(evt) });
   });
 
   app.get("/xrpc/com.atproto.repo.getRecord", async (c) => {
@@ -130,7 +142,7 @@ export function mountRepoRoutes(app: Hono, repo: RepoApi): void {
       record,
     }]);
     const uri = `at://${did}/${body.collection}/${body.rkey}`;
-    return c.json({ uri, cid: evt.commit });
+    return c.json({ uri, cid: recordCidOf(evt) });
   });
 
   app.post("/xrpc/com.atproto.repo.applyWrites", async (c) => {
@@ -170,7 +182,9 @@ export function mountRepoRoutes(app: Hono, repo: RepoApi): void {
         return { $type: "com.atproto.repo.applyWrites#deleteResult" };
       }
       const uri = `at://${did}/${op.collection}/${op.rkey}`;
-      const resultCid = evt.ops[i]?.cid ?? evt.commit;
+      // Never fall back to evt.commit here: a create/update result must carry
+      // the record's own CID, and a commit CID would address different bytes.
+      const resultCid = recordCidOf(evt, i);
       if (op.action === "create") {
         return {
           $type: "com.atproto.repo.applyWrites#createResult",

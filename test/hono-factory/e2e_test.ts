@@ -145,3 +145,59 @@ Deno.test("e2e subscribe delivers frame after createRecord", async () => {
 
   dispose();
 });
+
+// A strongRef minted from a write must address the same bytes that reads return.
+// createRecord/putRecord previously answered with the commit CID, so every
+// strongRef built from a write disagreed with getRecord/listRecords for the same
+// record and any later match on that strongRef silently failed.
+Deno.test("e2e write cid is the record cid, not the commit cid", async () => {
+  const kp = await Secp256k1Keypair.create();
+  const signer = signerFromKeypair(kp);
+  const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
+  const { did } = await createAccountAndToken(factory, signer.did());
+  // Service-auth tokens are not reusable across calls; mint one per request.
+  const authHeaders = async () => ({
+    "content-type": "application/json",
+    authorization: `Bearer ${await signServiceAuth(factory.getUserSigner(did)!, { aud: signer.did() })}`,
+  });
+
+  const created = await (await factory.app.request("/xrpc/com.atproto.repo.createRecord", {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({
+      repo: did,
+      collection: "com.example.record",
+      rkey: "cidcheck",
+      record: { hello: "world" },
+    }),
+  })).json() as { uri: string; cid: string };
+
+  const got = await (await factory.app.request(
+    `/xrpc/com.atproto.repo.getRecord?repo=${did}&collection=com.example.record&rkey=cidcheck`,
+  )).json() as { cid: string };
+  assertEquals(created.cid, got.cid, "createRecord cid must equal getRecord cid");
+
+  const listed = await (await factory.app.request(
+    `/xrpc/com.atproto.repo.listRecords?repo=${did}&collection=com.example.record`,
+  )).json() as { records: { uri: string; cid: string }[] };
+  const match = listed.records.find((r) => r.uri === created.uri);
+  assertExists(match);
+  assertEquals(created.cid, match.cid, "createRecord cid must equal listRecords cid");
+
+  const put = await (await factory.app.request("/xrpc/com.atproto.repo.putRecord", {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({
+      repo: did,
+      collection: "com.example.record",
+      rkey: "cidcheck",
+      record: { hello: "updated" },
+    }),
+  })).json() as { uri: string; cid: string };
+
+  const afterPut = await (await factory.app.request(
+    `/xrpc/com.atproto.repo.getRecord?repo=${did}&collection=com.example.record&rkey=cidcheck`,
+  )).json() as { cid: string };
+  assertEquals(put.cid, afterPut.cid, "putRecord cid must equal getRecord cid");
+  assertEquals(put.cid === created.cid, false, "updating the record must change its cid");
+});

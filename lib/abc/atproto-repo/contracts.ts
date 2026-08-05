@@ -87,6 +87,21 @@ export const XrpcErrorNames = {
 
 export type XrpcErrorName = (typeof XrpcErrorNames)[keyof typeof XrpcErrorNames];
 
+/**
+ * Per the XRPC spec's status code table: 400 for a request that was invalid and
+ * not processed, 401 when authentication is required, 404 for a missing
+ * resource. The error name carries the specific meaning; the status only has to
+ * put it in the right class.
+ * https://atproto.com/specs/xrpc#summary-of-http-status-codes
+ */
+const XRPC_ERROR_STATUS: Record<XrpcErrorName, number> = {
+  InvalidRequest: 400,
+  AuthenticationRequired: 401,
+  RecordNotFound: 404,
+  RepoNotFound: 404,
+  InvalidSwap: 400,
+};
+
 export class XrpcError extends Error {
   readonly error: XrpcErrorName;
   readonly status: number;
@@ -94,7 +109,7 @@ export class XrpcError extends Error {
   constructor(error: XrpcErrorName, message: string, status?: number) {
     super(message);
     this.error = error;
-    this.status = status ?? (error === "AuthenticationRequired" ? 401 : 400);
+    this.status = status ?? XRPC_ERROR_STATUS[error] ?? 400;
     this.name = "XrpcError";
   }
 

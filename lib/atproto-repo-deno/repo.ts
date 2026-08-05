@@ -82,6 +82,7 @@ export class Repo implements RepoApi {
   #store: Storage;
   #signer: Signer;
   #did: Did;
+  #writeQueue = new Map<Did, Promise<void>>();
 
   constructor(store: Storage, signer: Signer, did?: Did) {
     this.#store = store;
@@ -172,7 +173,27 @@ export class Repo implements RepoApi {
     return { records: results, cursor: nextCursor };
   }
 
-  async applyWrites(_did: Did, writes: WriteOp[]): Promise<CommitEvent> {
+  /**
+   * A commit is read-modify-write over the repo head: read the head, rebuild the
+   * MST from it, then set a new head. Two writes to the same repo that interleave
+   * both build from the same root, so whichever calls setHead last silently drops
+   * the other's records -- the write still answers 200 and the record is simply
+   * gone. Serialize per repo so commits to one DID always stack.
+   */
+  applyWrites(_did: Did, writes: WriteOp[]): Promise<CommitEvent> {
+    const prior = this.#writeQueue.get(_did) ?? Promise.resolve();
+    const result = prior.then(() => this.#applyWritesLocked(_did, writes));
+    // The queued tail must never be a rejected promise, or one failed write
+    // would fail every write chained behind it.
+    const tail = result.then(() => {}, () => {});
+    this.#writeQueue.set(_did, tail);
+    void tail.then(() => {
+      if (this.#writeQueue.get(_did) === tail) this.#writeQueue.delete(_did);
+    });
+    return result;
+  }
+
+  async #applyWritesLocked(_did: Did, writes: WriteOp[]): Promise<CommitEvent> {
     if (writes.length > 200) {
       throw new XrpcError("InvalidRequest", "writes exceed maximum of 200 per commit");
     }
