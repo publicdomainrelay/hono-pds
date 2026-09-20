@@ -63,6 +63,22 @@ export interface RepoFactoryOptions {
   /** Firehose subscribeRepos wire format. "drisl" (default) for binary DRISL frames;
    *  "json" for JSON string frames (compatible with atproto-relay and firehose watchers). */
   subscribeReposFormat?: "drisl" | "json";
+  /** Handles to declare in the did:web document's `alsoKnownAs`, as `at://` URIs.
+   *  A handle's DNS or HTTPS record proves handle -> DID; this is the other
+   *  direction, and both are needed for the claim to hold. */
+  alsoKnownAs?: string[];
+  /**
+   * Serve the repo for reads only.
+   *
+   * A deployment that mounts this factory as its own identity over a single repo
+   * -- because did:web resolves by fetching /.well-known/did.json from the same
+   * host, so the document, the repo and the well-known routes have to share an
+   * origin -- has no use for the credential-minting routes, and two of them are
+   * actively unsafe there: createAccount is unauthenticated, and getServiceAuth
+   * signs any aud/lxm with the key the did:web document publishes, so anyone
+   * could mint tokens that verify as this DID to any relying service.
+   */
+  readOnly?: boolean;
 }
 
 export interface RepoFactory {
@@ -194,6 +210,7 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
       return c.json({
         "@context": context,
         id: `did:web:${host}`,
+        ...(opts.alsoKnownAs && opts.alsoKnownAs.length > 0 ? { alsoKnownAs: opts.alsoKnownAs } : {}),
         ...(verificationMethod.length > 0 ? { verificationMethod } : {}),
         service: opts.didWebServices!.map((s) => ({
           id: s.id.startsWith("#") ? s.id : `#${s.id}`,
@@ -262,6 +279,32 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     }
 
     return c.json({ error: "AuthenticationRequired", message: "invalid token" }, 401);
+  }
+
+  // ── read-only guard ─────────────────────────────────────────────────
+
+  // Registered as a guard ahead of the routes rather than by skipping each
+  // registration: these registrations are interleaved with ones that must stay,
+  // and wrapping them would re-indent a hundred lines for no observable
+  // difference -- the client sees 404 either way.
+  //
+  // The repo write routes are deliberately absent from this list. They stay
+  // gated by requireAuth, and with nothing able to mint a token, nothing can
+  // satisfy it; naming them here would suggest a second, weaker check.
+  if (opts.readOnly) {
+    for (
+      const path of [
+        "/xrpc/com.atproto.server.createAccount",
+        "/xrpc/com.atproto.server.createSession",
+        "/xrpc/com.atproto.server.refreshSession",
+        "/xrpc/com.atproto.server.createInviteCode",
+        "/xrpc/com.atproto.server.createInviteCodes",
+        "/xrpc/com.atproto.admin.getInviteCodes",
+        "/xrpc/com.atproto.server.getServiceAuth",
+      ]
+    ) {
+      app.all(path, (c) => c.notFound());
+    }
   }
 
   // ── createAccount ───────────────────────────────────────────────────
