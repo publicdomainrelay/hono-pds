@@ -174,4 +174,5 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 | lib-hono-factory-atproto-repo-deno-lexicons-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | lib-hono-factory-atproto-repo-deno-lexicons-c2s-fa8920306bc4-fa8920306bc4-a2 | CodeToSpec | Succeeded |  | 0 | - |
 | scripts-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
+| test-abc-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
 | test-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
