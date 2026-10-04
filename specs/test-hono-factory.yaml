@@ -30,9 +30,10 @@ spec:
       across further writes the accepted crawler is not announced again. A second
       test with a listener that always answers 200 asserts exactly one announce across
       several writes. The first test must fail against a factory that marks a crawler
-      announced before it answers 2xx. The change leaves the repository's deno.lock
-      byte for byte as it found it -- a test run that rewrites the lock file is not
-      part of this fix, and the lock is restored before the change is finished.
+      announced before it answers 2xx. The change puts the repository's deno.lock
+      back to exactly what origin/pre-iroh carries, the base this branch was cut from
+      -- running the tests rewrites the lock file, and that rewrite is not part of
+      this fix.
     codeRefs:
     - file:test/hono-factory/e2e_test.ts
   - id: r.e2e-create-record-returns-uri-and-cid
