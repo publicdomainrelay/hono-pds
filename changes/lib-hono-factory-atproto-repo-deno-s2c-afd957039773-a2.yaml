@@ -1,0 +1,25 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SpecChange
+metadata:
+  name: lib-hono-factory-atproto-repo-deno-s2c-afd957039773-a2
+  namespace: default
+spec:
+  systemContext: lib-hono-factory-atproto-repo-deno
+  direction: SpecToCode
+  fromSpecHash: b9348d5ae7b7971093b0991c17f16c2f912285c1d2f3a63dae1937e39c61a065
+  toSpecHash: afd957039773be7297e2893c648e0ce4c7a73a6c3ea1f588ff18b54f91ffc29c
+  delta:
+    counts:
+      added: 1
+    requirements:
+    - +r.crawler-announce-requires-a-2xx
+status:
+  phase: Pending
+superseded:
+- name: lib-hono-factory-atproto-repo-deno-s2c-afd957039773
+  phase: Failed
+  message: "gitrepo: fast-forward fix/crawler-announce-retries to ca3439d3135e5b614fa5a6097c80f1edbdc2b7b1:
+    gitrepo: git merge --ff-only ca3439d3135e5b614fa5a6097c80f1edbdc2b7b1 in /tmp/specd-deno-kcp-pr.7sXcdd/hono-pds:
+    exit status 1: error: Your local changes to the following files would be overwritten
+    by merge:\n\tdeno.lock\nPlease commit your changes or stash them before you merge.\nAborting\nUpdating
+    fa89203..ca3439d"
