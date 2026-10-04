@@ -18,4 +18,8 @@ status:
   indexedCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
   observedCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
   syncedCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
-  phase: Indexing
+  phase: Populating
+  contexts:
+    total: 16
+    summarized: 0
+    failed: 0

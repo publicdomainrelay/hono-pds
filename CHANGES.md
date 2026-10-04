@@ -8,4 +8,7 @@ _None: this branch declares the same requirements as the default branch._
 
 ## Realization
 
-_None: no SpecChange landed on this branch yet._
+| change | direction | phase | commit | verify | acceptance |
+| --- | --- | --- | --- | --- | --- |
+| hono-pds-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
+| lib-abc-atproto-oauth-server-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
