@@ -7,10 +7,10 @@ spec:
   source: {}
   branch: fix/crawler-announce-retries
   verify:
-  - deno
-  - task
-  - test
-  - --no-lock
+  - bash
+  - -c
+  - git checkout origin/pre-iroh -- deno.lock 2>/dev/null || true; deno task test
+    --no-lock
   populate:
     partition: directory
     summarize: true
