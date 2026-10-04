@@ -1,0 +1,7 @@
+# Written by specd from kcp; review specs/ and CHANGES.md instead.
+arch.yaml linguist-generated=true
+repository.yaml linguist-generated=true
+changes/* linguist-generated=true
+context/* linguist-generated=true
+graph/* linguist-generated=true
+status/* linguist-generated=true

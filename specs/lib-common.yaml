@@ -1,0 +1,18 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SystemContext
+metadata:
+  name: lib-common
+  namespace: default
+spec:
+  repository: hono-pds
+  upstream: self
+  dependsOn:
+  - sc.hono-pds
+codeRefIndex:
+- file:lib/common/bytes.ts bytes.ts@lib/common/bytes.ts
+- file:lib/common/cid.ts cid.ts@lib/common/cid.ts
+- file:lib/common/dag-cbor.ts dag-cbor.ts@lib/common/dag-cbor.ts
+- file:lib/common/drisl-cbor.ts drisl-cbor.ts@lib/common/drisl-cbor.ts
+- file:lib/common/mod.ts mod.ts@lib/common/mod.ts
+- file:lib/common/subscribe-types.ts subscribe-types.ts@lib/common/subscribe-types.ts
+- file:lib/common/tid.ts tid.ts@lib/common/tid.ts

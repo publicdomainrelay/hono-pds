@@ -1,0 +1,68 @@
+syncedFingerprint: 20c2ac3053341611c2fd20e1ad967fd58d3ae5e3fa7a971dcf91eec88cdc24bc
+realizedSpecHash: 3b1695c483cc3533dce806393a66d8307de9a72e290ceb8fe01719621e61e1a1
+conditions:
+- type: CodeSynced
+  status: "False"
+  reason: InterfacesMissing
+  message: 'undeclared: DpopNonceStore, DpopProofValidation, DpopVerifier, InjectedSession,
+    IssueTokenParams, IssueTokenResult, SessionInjector, TokenStore, TokenValidation'
+- type: Drifted
+  status: "False"
+  reason: FingerprintEqual
+  message: observed facts match the synced fingerprint
+- type: SpecValid
+  status: "True"
+  reason: ValidatorPassed
+  message: the spec passes the validator
+observed:
+  files:
+  - lib/abc/atproto-oauth-server/mod.ts
+  treeFiles:
+  - lib/abc/atproto-oauth-server/deno.json
+  interfaces:
+  - name: IssueTokenParams
+    kind: interface
+    file: lib/abc/atproto-oauth-server/mod.ts
+    line: 8
+    codegraphId: interface:f37628b299fefaaf4b392c93a553db64
+  - name: IssueTokenResult
+    kind: interface
+    file: lib/abc/atproto-oauth-server/mod.ts
+    line: 17
+    codegraphId: interface:1e552af5f7e4ab4f902c562717253aba
+  - name: TokenValidation
+    kind: interface
+    file: lib/abc/atproto-oauth-server/mod.ts
+    line: 23
+    codegraphId: interface:c887febac8a2b13e2eeeb7a955adf144
+  - name: TokenStore
+    kind: interface
+    file: lib/abc/atproto-oauth-server/mod.ts
+    line: 30
+    codegraphId: interface:f40625201a62963b12843dc8cb6b49d1
+  - name: InjectedSession
+    kind: interface
+    file: lib/abc/atproto-oauth-server/mod.ts
+    line: 39
+    codegraphId: interface:ca9108dd009b23077685de072292e062
+  - name: SessionInjector
+    kind: interface
+    file: lib/abc/atproto-oauth-server/mod.ts
+    line: 44
+    codegraphId: interface:af5476d79846d9238b5d534bb65f4679
+  - name: DpopProofValidation
+    kind: interface
+    file: lib/abc/atproto-oauth-server/mod.ts
+    line: 54
+    codegraphId: interface:bfc3ab9d8e8b884452e3a13fa93660e3
+  - name: DpopVerifier
+    kind: interface
+    file: lib/abc/atproto-oauth-server/mod.ts
+    line: 59
+    codegraphId: interface:b3e92b89ae7b3ded9f267f19f6987bd7
+  - name: DpopNonceStore
+    kind: interface
+    file: lib/abc/atproto-oauth-server/mod.ts
+    line: 70
+    codegraphId: interface:00577634a76e8053cea00d61bd25f3e6
+  fingerprint: 20c2ac3053341611c2fd20e1ad967fd58d3ae5e3fa7a971dcf91eec88cdc24bc

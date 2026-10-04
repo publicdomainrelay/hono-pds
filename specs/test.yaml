@@ -1,0 +1,13 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SystemContext
+metadata:
+  name: test
+  namespace: default
+spec:
+  repository: hono-pds
+  upstream: self
+  dependsOn:
+  - sc.hono-pds
+codeRefIndex:
+- file:test/cli_smoke_test.ts cli_smoke_test.ts@test/cli_smoke_test.ts
+- file:test/integration_test.ts integration_test.ts@test/integration_test.ts

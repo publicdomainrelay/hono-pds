@@ -1,0 +1,207 @@
+syncedFingerprint: 9bd5e8fc8de812dbf8fbe687d7001bad65ce1547a3384b888c646ce15293efe1
+realizedSpecHash: 4d1ca51de36bfd586f44a383ee4656dbccef84e06fb978ccac2b563357c86173
+conditions:
+- type: CodeSynced
+  status: "False"
+  reason: InterfacesMissing
+  message: 'undeclared: Bytes, Cid, SubscribeHandler, Subscription, Tid, base32Decode,
+    base32Encode, base64Decode, base64Encode, bytesEqual, cidDigest, cidEquals, cidFromDigest,
+    cidFromLink, cidLink, cidToBytes, concat, decode, encode, hexDecode, hexEncode,
+    isCidLink, isValidCid, isValidTid, nextTid, parseTid, resetClockId, tidFromTime,
+    utf8Decode, utf8Encode'
+- type: Drifted
+  status: "False"
+  reason: FingerprintEqual
+  message: observed facts match the synced fingerprint
+- type: SpecValid
+  status: "True"
+  reason: ValidatorPassed
+  message: the spec passes the validator
+observed:
+  files:
+  - lib/common/bytes.ts
+  - lib/common/cid.ts
+  - lib/common/dag-cbor.ts
+  - lib/common/drisl-cbor.ts
+  - lib/common/mod.ts
+  - lib/common/subscribe-types.ts
+  - lib/common/tid.ts
+  treeFiles:
+  - lib/common/deno.json
+  interfaces:
+  - name: Bytes
+    kind: type_alias
+    file: lib/common/bytes.ts
+    line: 1
+    codegraphId: type_alias:349a878ef851f1767aff55630d58fc0e
+  - name: utf8Encode
+    kind: function
+    signature: '(s: string): Bytes'
+    file: lib/common/bytes.ts
+    line: 6
+    codegraphId: function:55685ba8bbe657ba51874ac7b87cf527
+  - name: utf8Decode
+    kind: function
+    signature: '(b: Bytes): string'
+    file: lib/common/bytes.ts
+    line: 10
+    codegraphId: function:d444906f0cb0d192ea63ac4c86299c8d
+  - name: hexEncode
+    kind: function
+    signature: '(b: Bytes): string'
+    file: lib/common/bytes.ts
+    line: 16
+    codegraphId: function:01c98d3a332fbbf7eb0235c431cb8a72
+  - name: hexDecode
+    kind: function
+    signature: '(s: string): Bytes'
+    file: lib/common/bytes.ts
+    line: 25
+    codegraphId: function:d2b6a53592dcd51bc62f2e8c817006b1
+  - name: base64Encode
+    kind: function
+    signature: '(b: Bytes): string'
+    file: lib/common/bytes.ts
+    line: 41
+    codegraphId: function:f088a1ac5ff6b45107bcd08bd3c8b964
+  - name: base64Decode
+    kind: function
+    signature: '(s: string): Bytes'
+    file: lib/common/bytes.ts
+    line: 47
+    codegraphId: function:4572442dfcba55aa00003f0c97b8f9de
+  - name: base32Encode
+    kind: function
+    signature: '(b: Bytes): string'
+    file: lib/common/bytes.ts
+    line: 56
+    codegraphId: function:9f66c4b3aa766d98b237b1b2732672bc
+  - name: base32Decode
+    kind: function
+    signature: '(s: string): Bytes'
+    file: lib/common/bytes.ts
+    line: 74
+    codegraphId: function:c2c1d8ea15e2a84502dd41bb0c7117af
+  - name: concat
+    kind: function
+    signature: '(...arrays: Bytes[]): Bytes'
+    file: lib/common/bytes.ts
+    line: 91
+    codegraphId: function:ab529efcf58f550a1fa9ee9812b3182e
+  - name: bytesEqual
+    kind: function
+    signature: '(a: Bytes, b: Bytes): boolean'
+    file: lib/common/bytes.ts
+    line: 102
+    codegraphId: function:524e4abef36ca7c2474670680ced7739
+  - name: Cid
+    kind: type_alias
+    file: lib/common/cid.ts
+    line: 4
+    codegraphId: type_alias:70120236446060d8609cd55827e58058
+  - name: cidFromDigest
+    kind: function
+    signature: '(digest: Bytes): Cid'
+    file: lib/common/cid.ts
+    line: 13
+    codegraphId: function:a484eb570c93476518efcecf4c14139b
+  - name: cidToBytes
+    kind: function
+    signature: '(cid: Cid): Bytes'
+    file: lib/common/cid.ts
+    line: 26
+    codegraphId: function:ad71575387e43d8ea0fc5fc55115b874
+  - name: cidDigest
+    kind: function
+    signature: '(cid: Cid): Bytes'
+    file: lib/common/cid.ts
+    line: 35
+    codegraphId: function:17133f0ecd019ece0b7865268773e6cd
+  - name: isValidCid
+    kind: function
+    signature: '(s: string): s is Cid'
+    file: lib/common/cid.ts
+    line: 46
+    codegraphId: function:fbeb8b947ca578391b990b133e1a980e
+  - name: cidEquals
+    kind: function
+    signature: '(a: Cid, b: Cid): boolean'
+    file: lib/common/cid.ts
+    line: 59
+    codegraphId: function:b2cf9899ec95c445e72b05ee3e51aff1
+  - name: cidLink
+    kind: function
+    signature: '(cidOrBytes: Cid | Bytes): { $link: Cid }'
+    file: lib/common/dag-cbor.ts
+    line: 237
+    codegraphId: function:afb689bb3b7a1f7bedb035285a03a235
+  - name: isCidLink
+    kind: function
+    signature: '(val: unknown): val is { $link: Cid }'
+    file: lib/common/dag-cbor.ts
+    line: 257
+    codegraphId: function:227d7666fdd45b742ef3af7c92dfc6ee
+  - name: cidFromLink
+    kind: function
+    signature: '(link: { $link: Cid }): Cid'
+    file: lib/common/dag-cbor.ts
+    line: 262
+    codegraphId: function:d1582016bd9fbd5cef48a212d75a077b
+  - name: encode
+    kind: function
+    signature: '(val: unknown): Bytes'
+    file: lib/common/dag-cbor.ts
+    line: 266
+    codegraphId: function:715632c4c02e805c4fddf2c3c53f8365
+  - name: decode
+    kind: function
+    signature: '(buf: Bytes): unknown'
+    file: lib/common/dag-cbor.ts
+    line: 272
+    codegraphId: function:bedbccfced7ce19d9df8d264e9d5f28f
+  - name: Subscription
+    kind: interface
+    file: lib/common/subscribe-types.ts
+    line: 1
+    codegraphId: interface:47bc85c7c8975ca35be2d248a39fc8f8
+  - name: SubscribeHandler
+    kind: type_alias
+    file: lib/common/subscribe-types.ts
+    line: 6
+    codegraphId: type_alias:b497332f11279a3ca8c515bffde9accd
+  - name: Tid
+    kind: type_alias
+    file: lib/common/tid.ts
+    line: 1
+    codegraphId: type_alias:8456cefe0f30f0368ef52c81427cf681
+  - name: resetClockId
+    kind: function
+    signature: '(id?: number): void'
+    file: lib/common/tid.ts
+    line: 15
+    codegraphId: function:a9cd82ca460c103d42d9a8119893325d
+  - name: nextTid
+    kind: function
+    signature: '(): Tid'
+    file: lib/common/tid.ts
+    line: 27
+    codegraphId: function:24748c1afdcced17ac675c4b3a27714f
+  - name: tidFromTime
+    kind: function
+    signature: '(micros: number, clock?: number): Tid'
+    file: lib/common/tid.ts
+    line: 45
+    codegraphId: function:cbf5c2696667b12cfdeed24e0a090ddf
+  - name: parseTid
+    kind: function
+    signature: '(tid: Tid): { micros: number; clockId: number }'
+    file: lib/common/tid.ts
+    line: 103
+    codegraphId: function:0f5bb9fbeaea51e0ed9695514c4cff46
+  - name: isValidTid
+    kind: function
+    signature: '(s: string): s is Tid'
+    file: lib/common/tid.ts
+    line: 116
+    codegraphId: function:227950df02ace808ee9d20754ad7397f
+  fingerprint: 9bd5e8fc8de812dbf8fbe687d7001bad65ce1547a3384b888c646ce15293efe1

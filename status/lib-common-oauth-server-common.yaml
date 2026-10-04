@@ -1,0 +1,45 @@
+syncedFingerprint: 2e8b54f5f4cfc69053d673ab6aa9ef98c272c1838c00362760fa78e07fd67ff4
+realizedSpecHash: ff48b1e429738e83e85a6bf9568cd5e795339323566d64f57b68aa8d609b7261
+conditions:
+- type: CodeSynced
+  status: "False"
+  reason: InterfacesMissing
+  message: 'undeclared: OAuthSessionData, b64url, computeJkt, generateDpopNonce'
+- type: Drifted
+  status: "False"
+  reason: FingerprintEqual
+  message: observed facts match the synced fingerprint
+- type: SpecValid
+  status: "True"
+  reason: ValidatorPassed
+  message: the spec passes the validator
+observed:
+  files:
+  - lib/common/oauth-server-common/mod.ts
+  treeFiles:
+  - lib/common/oauth-server-common/deno.json
+  interfaces:
+  - name: generateDpopNonce
+    kind: function
+    signature: '(): string'
+    file: lib/common/oauth-server-common/mod.ts
+    line: 13
+    codegraphId: function:da455fe1f77703d9b1b570ac018ae475
+  - name: b64url
+    kind: function
+    signature: '(bytes: Uint8Array): string'
+    file: lib/common/oauth-server-common/mod.ts
+    line: 17
+    codegraphId: function:5810e31edf2e6e95afc34833da48dc86
+  - name: computeJkt
+    kind: function
+    signature: '(jwk: Record<string, string>): Promise<string>'
+    file: lib/common/oauth-server-common/mod.ts
+    line: 23
+    codegraphId: function:693ae22c42b1d574a4b56af51d12c703
+  - name: OAuthSessionData
+    kind: interface
+    file: lib/common/oauth-server-common/mod.ts
+    line: 38
+    codegraphId: interface:3ea5feb96bfcd60114c5b7bb013568cb
+  fingerprint: 2e8b54f5f4cfc69053d673ab6aa9ef98c272c1838c00362760fa78e07fd67ff4

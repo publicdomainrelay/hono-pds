@@ -1,0 +1,10 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SystemContext
+metadata:
+  name: hono-pds
+  namespace: default
+spec:
+  repository: hono-pds
+  upstream: self
+codeRefIndex:
+- file:main.ts main.ts@main.ts

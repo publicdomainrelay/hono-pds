@@ -1,0 +1,13 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SystemContext
+metadata:
+  name: test-atproto-repo-deno
+  namespace: default
+spec:
+  repository: hono-pds
+  upstream: self
+  dependsOn:
+  - sc.hono-pds
+codeRefIndex:
+- file:test/atproto-repo-deno/repo_test.ts repo_test.ts@test/atproto-repo-deno/repo_test.ts
+- file:test/atproto-repo-deno/storage_test.ts storage_test.ts@test/atproto-repo-deno/storage_test.ts

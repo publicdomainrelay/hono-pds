@@ -1,0 +1,16 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SystemContext
+metadata:
+  name: test-common
+  namespace: default
+spec:
+  repository: hono-pds
+  upstream: self
+  dependsOn:
+  - sc.hono-pds
+codeRefIndex:
+- file:test/common/bytes_test.ts bytes_test.ts@test/common/bytes_test.ts
+- file:test/common/cid_test.ts cid_test.ts@test/common/cid_test.ts
+- file:test/common/dag-cbor_test.ts dag-cbor_test.ts@test/common/dag-cbor_test.ts
+- file:test/common/drisl_cbor_test.ts drisl_cbor_test.ts@test/common/drisl_cbor_test.ts
+- file:test/common/tid_test.ts tid_test.ts@test/common/tid_test.ts

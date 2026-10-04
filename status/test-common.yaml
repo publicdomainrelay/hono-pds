@@ -1,0 +1,24 @@
+syncedFingerprint: ba9e9097134371caa9047876f73361a18d24c474f9e386f0472c2cc8a1ec0079
+realizedSpecHash: 08badf262d4f5ef9dd124be8fcb63e11738c00ad245cfb02158fe1e9c2e43ac5
+conditions:
+- type: CodeSynced
+  status: "True"
+  reason: InterfacesObserved
+  message: every declared interface is observed, nothing undeclared is exported and
+    every requirement code ref resolves
+- type: Drifted
+  status: "False"
+  reason: NotSyncedYet
+  message: no synced fingerprint has been recorded yet
+- type: SpecValid
+  status: "True"
+  reason: ValidatorPassed
+  message: the spec passes the validator
+observed:
+  files:
+  - test/common/bytes_test.ts
+  - test/common/cid_test.ts
+  - test/common/dag-cbor_test.ts
+  - test/common/drisl_cbor_test.ts
+  - test/common/tid_test.ts
+  fingerprint: ba9e9097134371caa9047876f73361a18d24c474f9e386f0472c2cc8a1ec0079

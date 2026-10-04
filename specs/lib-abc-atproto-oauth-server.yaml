@@ -1,0 +1,12 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SystemContext
+metadata:
+  name: lib-abc-atproto-oauth-server
+  namespace: default
+spec:
+  repository: hono-pds
+  upstream: self
+  dependsOn:
+  - sc.hono-pds
+codeRefIndex:
+- file:lib/abc/atproto-oauth-server/mod.ts mod.ts@lib/abc/atproto-oauth-server/mod.ts

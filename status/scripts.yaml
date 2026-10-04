@@ -1,0 +1,47 @@
+syncedFingerprint: c346e9363b2207214cb592fcb2543aa64d652744f22e9c0cd7910617c1ce0b1d
+realizedSpecHash: 54a2f494ec88f7d0391e898a9dd11951f0411d56be0a0a20cd9f80ca86b447ff
+conditions:
+- type: CodeSynced
+  status: "False"
+  reason: InterfacesMissing
+  message: 'undeclared: PdsSandbox, createPdsSandbox, fetch, shutdown'
+- type: Drifted
+  status: "False"
+  reason: FingerprintEqual
+  message: observed facts match the synced fingerprint
+- type: SpecValid
+  status: "True"
+  reason: ValidatorPassed
+  message: the spec passes the validator
+observed:
+  files:
+  - scripts/run-worker.ts
+  - scripts/sandbox.ts
+  - scripts/worker-launcher.ts
+  treeFiles:
+  - scripts/bundle.sh
+  interfaces:
+  - name: PdsSandbox
+    kind: interface
+    file: scripts/sandbox.ts
+    line: 4
+    codegraphId: interface:76792809058bca60ee2f8020cd282718
+  - name: createPdsSandbox
+    kind: function
+    signature: '(): Promise<PdsSandbox>'
+    file: scripts/sandbox.ts
+    line: 9
+    codegraphId: function:1e8a394a85efb094e83417600cb5d9c6
+  - name: fetch
+    kind: function
+    signature: '(req: Request): Promise<Response>'
+    file: scripts/sandbox.ts
+    line: 54
+    codegraphId: function:7c88be26c839763d478fc66921bff4ad
+  - name: shutdown
+    kind: function
+    signature: ()
+    file: scripts/sandbox.ts
+    line: 72
+    codegraphId: function:de2941b3a7c432edebcb7aedc17dacfd
+  fingerprint: c346e9363b2207214cb592fcb2543aa64d652744f22e9c0cd7910617c1ce0b1d

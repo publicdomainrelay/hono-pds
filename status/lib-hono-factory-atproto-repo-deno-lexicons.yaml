@@ -1,0 +1,44 @@
+syncedFingerprint: c705b12d9a3c26e70cd844c870490cd39c9d3d44db0220955fdfebb136140ecd
+realizedSpecHash: f00ecf1dcdd7f525331e77d1fd418435fce553b7549c058b9c102e3b43d95be5
+conditions:
+- type: CodeSynced
+  status: "False"
+  reason: InterfacesMissing
+  message: 'undeclared: LexiconSchema, getLexicon'
+- type: Drifted
+  status: "False"
+  reason: FingerprintEqual
+  message: observed facts match the synced fingerprint
+- type: SpecValid
+  status: "True"
+  reason: ValidatorPassed
+  message: the spec passes the validator
+observed:
+  files:
+  - lib/hono-factory-atproto-repo-deno/lexicons/index.ts
+  treeFiles:
+  - lib/hono-factory-atproto-repo-deno/lexicons/com/atproto/identity/resolveHandle.json
+  - lib/hono-factory-atproto-repo-deno/lexicons/com/atproto/identity/updateHandle.json
+  - lib/hono-factory-atproto-repo-deno/lexicons/com/atproto/repo/createRecord.json
+  - lib/hono-factory-atproto-repo-deno/lexicons/com/atproto/repo/describeRepo.json
+  - lib/hono-factory-atproto-repo-deno/lexicons/com/atproto/repo/getRecord.json
+  - lib/hono-factory-atproto-repo-deno/lexicons/com/atproto/repo/listRecords.json
+  - lib/hono-factory-atproto-repo-deno/lexicons/com/atproto/repo/uploadBlob.json
+  - lib/hono-factory-atproto-repo-deno/lexicons/com/atproto/server/createAccount.json
+  - lib/hono-factory-atproto-repo-deno/lexicons/com/atproto/server/createSession.json
+  - lib/hono-factory-atproto-repo-deno/lexicons/com/atproto/server/describeServer.json
+  - lib/hono-factory-atproto-repo-deno/lexicons/com/atproto/server/refreshSession.json
+  - lib/hono-factory-atproto-repo-deno/lexicons/com/atproto/sync/subscribeRepos.json
+  interfaces:
+  - name: LexiconSchema
+    kind: interface
+    file: lib/hono-factory-atproto-repo-deno/lexicons/index.ts
+    line: 14
+    codegraphId: interface:e9404607f25e4bff7a872f8c957e6cc5
+  - name: getLexicon
+    kind: function
+    signature: '(nsid: string): LexiconSchema | undefined'
+    file: lib/hono-factory-atproto-repo-deno/lexicons/index.ts
+    line: 35
+    codegraphId: function:6103e9664172adb5c144151e19db4ac0
+  fingerprint: c705b12d9a3c26e70cd844c870490cd39c9d3d44db0220955fdfebb136140ecd

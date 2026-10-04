@@ -1,0 +1,17 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SystemContext
+metadata:
+  name: lib-hono-factory-atproto-repo-deno
+  namespace: default
+spec:
+  repository: hono-pds
+  upstream: self
+  dependsOn:
+  - sc.hono-pds
+codeRefIndex:
+- file:lib/hono-factory-atproto-repo-deno/factory.ts factory.ts@lib/hono-factory-atproto-repo-deno/factory.ts
+- file:lib/hono-factory-atproto-repo-deno/mod.ts mod.ts@lib/hono-factory-atproto-repo-deno/mod.ts
+- file:lib/hono-factory-atproto-repo-deno/repo-handlers.ts repo-handlers.ts@lib/hono-factory-atproto-repo-deno/repo-handlers.ts
+- file:lib/hono-factory-atproto-repo-deno/sequencer.ts sequencer.ts@lib/hono-factory-atproto-repo-deno/sequencer.ts
+- file:lib/hono-factory-atproto-repo-deno/subscribe.ts subscribe.ts@lib/hono-factory-atproto-repo-deno/subscribe.ts
+- file:lib/hono-factory-atproto-repo-deno/sync-handlers.ts sync-handlers.ts@lib/hono-factory-atproto-repo-deno/sync-handlers.ts

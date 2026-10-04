@@ -1,0 +1,20 @@
+syncedFingerprint: 6276bc9a7f6166e7aeba6591f02952923645e62f20b285931f0eef8de36c3e82
+realizedSpecHash: 34c08b33e3a8c81b19ded5333a995e735b979ca113a652e40ddff180c8ca4078
+conditions:
+- type: CodeSynced
+  status: "True"
+  reason: InterfacesObserved
+  message: every declared interface is observed, nothing undeclared is exported and
+    every requirement code ref resolves
+- type: Drifted
+  status: "False"
+  reason: FingerprintEqual
+  message: observed facts match the synced fingerprint
+- type: SpecValid
+  status: "True"
+  reason: ValidatorPassed
+  message: the spec passes the validator
+observed:
+  files:
+  - test/abc/mst_test.ts
+  fingerprint: 6276bc9a7f6166e7aeba6591f02952923645e62f20b285931f0eef8de36c3e82

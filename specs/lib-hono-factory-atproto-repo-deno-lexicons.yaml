@@ -1,0 +1,12 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SystemContext
+metadata:
+  name: lib-hono-factory-atproto-repo-deno-lexicons
+  namespace: default
+spec:
+  repository: hono-pds
+  upstream: self
+  dependsOn:
+  - sc.hono-pds
+codeRefIndex:
+- file:lib/hono-factory-atproto-repo-deno/lexicons/index.ts index.ts@lib/hono-factory-atproto-repo-deno/lexicons/index.ts

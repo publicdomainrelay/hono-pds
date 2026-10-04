@@ -1,0 +1,145 @@
+apiVersion: open-architecture.dffml.github.io/v0alpha1
+kind: GeneratedArchitecture
+metadata:
+  name: hono-pds
+  branch: open-architecture/hono-pds--fix-crawler-announce-retries
+system_contexts:
+- id: sc.hono-pds
+  name: hono-pds
+  spec: specs/hono-pds.yaml
+  upstream: self
+  codeRefIndex:
+  - file:main.ts main.ts@main.ts
+- id: sc.lib-abc-atproto-oauth-server
+  name: lib-abc-atproto-oauth-server
+  spec: specs/lib-abc-atproto-oauth-server.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:lib/abc/atproto-oauth-server/mod.ts mod.ts@lib/abc/atproto-oauth-server/mod.ts
+- id: sc.lib-abc-atproto-repo
+  name: lib-abc-atproto-repo
+  spec: specs/lib-abc-atproto-repo.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:lib/abc/atproto-repo/contracts.ts contracts.ts@lib/abc/atproto-repo/contracts.ts
+  - file:lib/abc/atproto-repo/mod.ts mod.ts@lib/abc/atproto-repo/mod.ts
+  - file:lib/abc/atproto-repo/mst.ts mst.ts@lib/abc/atproto-repo/mst.ts
+- id: sc.lib-atproto-oauth-server-deno
+  name: lib-atproto-oauth-server-deno
+  spec: specs/lib-atproto-oauth-server-deno.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:lib/atproto-oauth-server-deno/mod.ts mod.ts@lib/atproto-oauth-server-deno/mod.ts
+- id: sc.lib-atproto-repo-deno
+  name: lib-atproto-repo-deno
+  spec: specs/lib-atproto-repo-deno.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:lib/atproto-repo-deno/account-store.ts account-store.ts@lib/atproto-repo-deno/account-store.ts
+  - file:lib/atproto-repo-deno/car.ts car.ts@lib/atproto-repo-deno/car.ts
+  - file:lib/atproto-repo-deno/deno-kv-storage.ts deno-kv-storage.ts@lib/atproto-repo-deno/deno-kv-storage.ts
+  - file:lib/atproto-repo-deno/indexeddb-storage.ts indexeddb-storage.ts@lib/atproto-repo-deno/indexeddb-storage.ts
+  - file:lib/atproto-repo-deno/memory-storage.ts memory-storage.ts@lib/atproto-repo-deno/memory-storage.ts
+  - file:lib/atproto-repo-deno/mod.ts mod.ts@lib/atproto-repo-deno/mod.ts
+  - file:lib/atproto-repo-deno/repo.ts repo.ts@lib/atproto-repo-deno/repo.ts
+  - file:lib/atproto-repo-deno/service-auth.ts service-auth.ts@lib/atproto-repo-deno/service-auth.ts
+  - file:lib/atproto-repo-deno/signer.ts signer.ts@lib/atproto-repo-deno/signer.ts
+- id: sc.lib-common
+  name: lib-common
+  spec: specs/lib-common.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:lib/common/bytes.ts bytes.ts@lib/common/bytes.ts
+  - file:lib/common/cid.ts cid.ts@lib/common/cid.ts
+  - file:lib/common/dag-cbor.ts dag-cbor.ts@lib/common/dag-cbor.ts
+  - file:lib/common/drisl-cbor.ts drisl-cbor.ts@lib/common/drisl-cbor.ts
+  - file:lib/common/mod.ts mod.ts@lib/common/mod.ts
+  - file:lib/common/subscribe-types.ts subscribe-types.ts@lib/common/subscribe-types.ts
+  - file:lib/common/tid.ts tid.ts@lib/common/tid.ts
+- id: sc.lib-common-oauth-server-common
+  name: lib-common-oauth-server-common
+  spec: specs/lib-common-oauth-server-common.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:lib/common/oauth-server-common/mod.ts mod.ts@lib/common/oauth-server-common/mod.ts
+- id: sc.lib-hono-factory-atproto-repo-deno
+  name: lib-hono-factory-atproto-repo-deno
+  spec: specs/lib-hono-factory-atproto-repo-deno.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:lib/hono-factory-atproto-repo-deno/factory.ts factory.ts@lib/hono-factory-atproto-repo-deno/factory.ts
+  - file:lib/hono-factory-atproto-repo-deno/mod.ts mod.ts@lib/hono-factory-atproto-repo-deno/mod.ts
+  - file:lib/hono-factory-atproto-repo-deno/repo-handlers.ts repo-handlers.ts@lib/hono-factory-atproto-repo-deno/repo-handlers.ts
+  - file:lib/hono-factory-atproto-repo-deno/sequencer.ts sequencer.ts@lib/hono-factory-atproto-repo-deno/sequencer.ts
+  - file:lib/hono-factory-atproto-repo-deno/subscribe.ts subscribe.ts@lib/hono-factory-atproto-repo-deno/subscribe.ts
+  - file:lib/hono-factory-atproto-repo-deno/sync-handlers.ts sync-handlers.ts@lib/hono-factory-atproto-repo-deno/sync-handlers.ts
+- id: sc.lib-hono-factory-atproto-repo-deno-lexicons
+  name: lib-hono-factory-atproto-repo-deno-lexicons
+  spec: specs/lib-hono-factory-atproto-repo-deno-lexicons.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:lib/hono-factory-atproto-repo-deno/lexicons/index.ts index.ts@lib/hono-factory-atproto-repo-deno/lexicons/index.ts
+- id: sc.scripts
+  name: scripts
+  spec: specs/scripts.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:scripts/run-worker.ts run-worker.ts@scripts/run-worker.ts
+  - file:scripts/sandbox.ts sandbox.ts@scripts/sandbox.ts
+  - file:scripts/worker-launcher.ts worker-launcher.ts@scripts/worker-launcher.ts
+- id: sc.test
+  name: test
+  spec: specs/test.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:test/cli_smoke_test.ts cli_smoke_test.ts@test/cli_smoke_test.ts
+  - file:test/integration_test.ts integration_test.ts@test/integration_test.ts
+- id: sc.test-abc
+  name: test-abc
+  spec: specs/test-abc.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:test/abc/mst_test.ts mst_test.ts@test/abc/mst_test.ts
+- id: sc.test-atproto-repo-deno
+  name: test-atproto-repo-deno
+  spec: specs/test-atproto-repo-deno.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:test/atproto-repo-deno/repo_test.ts repo_test.ts@test/atproto-repo-deno/repo_test.ts
+  - file:test/atproto-repo-deno/storage_test.ts storage_test.ts@test/atproto-repo-deno/storage_test.ts
+- id: sc.test-common
+  name: test-common
+  spec: specs/test-common.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:test/common/bytes_test.ts bytes_test.ts@test/common/bytes_test.ts
+  - file:test/common/cid_test.ts cid_test.ts@test/common/cid_test.ts
+  - file:test/common/dag-cbor_test.ts dag-cbor_test.ts@test/common/dag-cbor_test.ts
+  - file:test/common/drisl_cbor_test.ts drisl_cbor_test.ts@test/common/drisl_cbor_test.ts
+  - file:test/common/tid_test.ts tid_test.ts@test/common/tid_test.ts

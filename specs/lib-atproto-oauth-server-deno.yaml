@@ -1,0 +1,12 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SystemContext
+metadata:
+  name: lib-atproto-oauth-server-deno
+  namespace: default
+spec:
+  repository: hono-pds
+  upstream: self
+  dependsOn:
+  - sc.hono-pds
+codeRefIndex:
+- file:lib/atproto-oauth-server-deno/mod.ts mod.ts@lib/atproto-oauth-server-deno/mod.ts

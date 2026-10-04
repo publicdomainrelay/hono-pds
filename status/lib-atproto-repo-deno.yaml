@@ -1,0 +1,303 @@
+syncedFingerprint: 1923f0c542bcdcae4b109351dbf2cb6a8f76810c8f2807ecdf791a3876393ea1
+realizedSpecHash: 68efb6cee9752a36149e14df8e642f1b0828c9396e6131e1b392b3f393e57b4d
+conditions:
+- type: CodeSynced
+  status: "False"
+  reason: InterfacesMissing
+  message: 'undeclared: AccountRecord, AccountStore, CarBlock, DenoKvStorage, DenoKvStorage.close,
+    DenoKvStorage.create, DenoKvStorage.get, DenoKvStorage.getHead, DenoKvStorage.has,
+    DenoKvStorage.put, DenoKvStorage.setHead, IndexedDbStorage, IndexedDbStorage.create,
+    IndexedDbStorage.get, IndexedDbStorage.getHead, IndexedDbStorage.has, IndexedDbStorage.put,
+    IndexedDbStorage.setHead, MemoryStorage, MemoryStorage.close, MemoryStorage.get,
+    MemoryStorage.getHead, MemoryStorage.has, MemoryStorage.put, MemoryStorage.setHead,
+    Repo, Repo.applyWrites, Repo.constructor, Repo.describe, Repo.did, Repo.getRecord,
+    Repo.listRecords, ServiceAuthOptions, VerifyServiceAuthOptions, createVerifier,
+    exportCar, importCar, signServiceAuth, signerFromKeypair, signerFromPrivateKeyHex,
+    verifierFromKeypair, verifyServiceAuthToken'
+- type: Drifted
+  status: "False"
+  reason: FingerprintEqual
+  message: observed facts match the synced fingerprint
+- type: SpecValid
+  status: "True"
+  reason: ValidatorPassed
+  message: the spec passes the validator
+observed:
+  files:
+  - lib/atproto-repo-deno/account-store.ts
+  - lib/atproto-repo-deno/car.ts
+  - lib/atproto-repo-deno/deno-kv-storage.ts
+  - lib/atproto-repo-deno/indexeddb-storage.ts
+  - lib/atproto-repo-deno/memory-storage.ts
+  - lib/atproto-repo-deno/mod.ts
+  - lib/atproto-repo-deno/repo.ts
+  - lib/atproto-repo-deno/service-auth.ts
+  - lib/atproto-repo-deno/signer.ts
+  treeFiles:
+  - lib/atproto-repo-deno/deno.json
+  interfaces:
+  - name: AccountRecord
+    kind: interface
+    file: lib/atproto-repo-deno/account-store.ts
+    line: 29
+    codegraphId: interface:97e164168cae0b7db41098de66ca12c1
+  - name: AccountStore
+    kind: interface
+    file: lib/atproto-repo-deno/account-store.ts
+    line: 38
+    codegraphId: interface:c7b8ac06d88fe59259003d958ab76de7
+  - name: exportCar
+    kind: function
+    signature: |-
+      (
+        store: Storage,
+        rootCid: Cid,
+      ): Promise<Bytes>
+    file: lib/atproto-repo-deno/car.ts
+    line: 81
+    codegraphId: function:bf75ebd3ed0c15cebd48c93df4e0c08f
+  - name: CarBlock
+    kind: interface
+    file: lib/atproto-repo-deno/car.ts
+    line: 100
+    codegraphId: interface:1c680c3bde2f864d734d712749874f48
+  - name: importCar
+    kind: function
+    signature: |-
+      (
+        carBytes: Bytes,
+      ): Promise<{ roots: Cid[]; blocks: CarBlock[] }>
+    file: lib/atproto-repo-deno/car.ts
+    line: 105
+    codegraphId: function:d1aa3833f729ad382a2349c5ff9d0b90
+  - name: DenoKvStorage
+    kind: class
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+    line: 3
+    codegraphId: class:900132c026ae2899422c8e1d504ed2ad
+  - name: DenoKvStorage.create
+    kind: method
+    signature: '(path?: string): Promise<DenoKvStorage>'
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+    line: 10
+    codegraphId: method:b2be5dc3db8be6b4c07f524b1d04f298
+  - name: DenoKvStorage.get
+    kind: method
+    signature: '(cid: Cid): Promise<Bytes | null>'
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+    line: 24
+    codegraphId: method:9e2c373ee53fae0c69d215af81459c34
+  - name: DenoKvStorage.put
+    kind: method
+    signature: '(cid: Cid, bytes: Bytes): Promise<void>'
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+    line: 29
+    codegraphId: method:47827d3680f72ed5e570912637954038
+  - name: DenoKvStorage.has
+    kind: method
+    signature: '(cid: Cid): Promise<boolean>'
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+    line: 33
+    codegraphId: method:4bbd2ad23f28f45e3743eb117062f72d
+  - name: DenoKvStorage.getHead
+    kind: method
+    signature: '(did: Did): Promise<{ commit: Cid; rev: Tid } | null>'
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+    line: 38
+    codegraphId: method:393a521a81ce73ee6b607245d6131434
+  - name: DenoKvStorage.setHead
+    kind: method
+    signature: '(did: Did, head: { commit: Cid; rev: Tid }): Promise<void>'
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+    line: 43
+    codegraphId: method:18f8ebd803ee5493235b54b18309d232
+  - name: DenoKvStorage.close
+    kind: method
+    signature: '(): void'
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+    line: 47
+    codegraphId: method:55a498f1563c27058c34d2adf3667417
+  - name: IndexedDbStorage
+    kind: class
+    file: lib/atproto-repo-deno/indexeddb-storage.ts
+    line: 46
+    codegraphId: class:ab614785501d1fa9e92a1f480160e0b1
+  - name: IndexedDbStorage.create
+    kind: method
+    signature: '(): Promise<IndexedDbStorage>'
+    file: lib/atproto-repo-deno/indexeddb-storage.ts
+    line: 53
+    codegraphId: method:6e9f02d0bdb31ee0beab549b4ebead47
+  - name: IndexedDbStorage.get
+    kind: method
+    signature: '(cid: Cid): Promise<Bytes | null>'
+    file: lib/atproto-repo-deno/indexeddb-storage.ts
+    line: 76
+    codegraphId: method:97b2de6d5d6e899cada2cbc294041724
+  - name: IndexedDbStorage.put
+    kind: method
+    signature: '(cid: Cid, bytes: Bytes): Promise<void>'
+    file: lib/atproto-repo-deno/indexeddb-storage.ts
+    line: 89
+    codegraphId: method:76face40c454a4c22db1103b77f0192d
+  - name: IndexedDbStorage.has
+    kind: method
+    signature: '(cid: Cid): Promise<boolean>'
+    file: lib/atproto-repo-deno/indexeddb-storage.ts
+    line: 99
+    codegraphId: method:83705247f8ddbca0f99c8d6728b8d5dc
+  - name: IndexedDbStorage.getHead
+    kind: method
+    signature: '(did: Did): Promise<{ commit: Cid; rev: Tid } | null>'
+    file: lib/atproto-repo-deno/indexeddb-storage.ts
+    line: 104
+    codegraphId: method:5d168db0bb1ffd0b0a82319541bf5d3c
+  - name: IndexedDbStorage.setHead
+    kind: method
+    signature: '(did: Did, head: { commit: Cid; rev: Tid }): Promise<void>'
+    file: lib/atproto-repo-deno/indexeddb-storage.ts
+    line: 118
+    codegraphId: method:76ce1d0b8e89fdc8bf7c53c23778cc1a
+  - name: MemoryStorage
+    kind: class
+    file: lib/atproto-repo-deno/memory-storage.ts
+    line: 3
+    codegraphId: class:fcc00cb42cf9a5f08a6a047fef8c7cd5
+  - name: MemoryStorage.get
+    kind: method
+    signature: '(cid: Cid): Promise<Bytes | null>'
+    file: lib/atproto-repo-deno/memory-storage.ts
+    line: 7
+    codegraphId: method:99bf6a25ea6dc545264a8e7c1d58377a
+  - name: MemoryStorage.put
+    kind: method
+    signature: '(cid: Cid, bytes: Bytes): Promise<void>'
+    file: lib/atproto-repo-deno/memory-storage.ts
+    line: 11
+    codegraphId: method:374e6fc5f69255fb1b76ae6d6d0c3d16
+  - name: MemoryStorage.has
+    kind: method
+    signature: '(cid: Cid): Promise<boolean>'
+    file: lib/atproto-repo-deno/memory-storage.ts
+    line: 15
+    codegraphId: method:13d90ea0508c01245c5bd60bc12bb3bc
+  - name: MemoryStorage.getHead
+    kind: method
+    signature: '(did: Did): Promise<{ commit: Cid; rev: Tid } | null>'
+    file: lib/atproto-repo-deno/memory-storage.ts
+    line: 19
+    codegraphId: method:4a983388c7216cc2940f56ce4399fc23
+  - name: MemoryStorage.setHead
+    kind: method
+    signature: '(did: Did, head: { commit: Cid; rev: Tid }): Promise<void>'
+    file: lib/atproto-repo-deno/memory-storage.ts
+    line: 23
+    codegraphId: method:8ac32f60eb5a2e1dc398b91681dd1a98
+  - name: MemoryStorage.close
+    kind: method
+    signature: '(): void'
+    file: lib/atproto-repo-deno/memory-storage.ts
+    line: 27
+    codegraphId: method:9bec2fd3aa425a31ea41a5290904ad36
+  - name: Repo
+    kind: class
+    file: lib/atproto-repo-deno/repo.ts
+    line: 81
+    codegraphId: class:2ec5a9ace354dde4dc09fbe7f899b52d
+  - name: Repo.constructor
+    kind: method
+    signature: '(store: Storage, signer: Signer, did?: Did)'
+    file: lib/atproto-repo-deno/repo.ts
+    line: 87
+    codegraphId: method:c227104ab246d619ccc784ead73cb379
+  - name: Repo.did
+    kind: method
+    signature: '(): Did'
+    file: lib/atproto-repo-deno/repo.ts
+    line: 93
+    codegraphId: method:59a2f48e4034cc7f1d986cef644edd34
+  - name: Repo.describe
+    kind: method
+    signature: '(_did: Did): Promise<{ collections: string[]; head: Tid | null }>'
+    file: lib/atproto-repo-deno/repo.ts
+    line: 97
+    codegraphId: method:6db395c8cf41c05f9fed9c167da2a10e
+  - name: Repo.getRecord
+    kind: method
+    signature: |-
+      (
+          _did: Did,
+          collection: string,
+          rkey: string,
+        ): Promise<{ uri: string; cid: Cid; value: unknown } | null>
+    file: lib/atproto-repo-deno/repo.ts
+    line: 116
+    codegraphId: method:5895656e6e5869b86dd23a86ad73f953
+  - name: Repo.listRecords
+    kind: method
+    signature: |-
+      (
+          _did: Did,
+          collection: string,
+          opts?: { limit?: number; cursor?: string },
+        ): Promise<{ records: { uri: string; cid: Cid; value: unknown }[]; cursor?: string }>
+    file: lib/atproto-repo-deno/repo.ts
+    line: 140
+    codegraphId: method:09d5ff902fe131e56e15ae79cf0e34b8
+  - name: Repo.applyWrites
+    kind: method
+    signature: '(_did: Did, writes: WriteOp[]): Promise<CommitEvent>'
+    file: lib/atproto-repo-deno/repo.ts
+    line: 183
+    codegraphId: method:73128a372db5ced9cd73eb7eb1d91cc1
+  - name: ServiceAuthOptions
+    kind: interface
+    file: lib/atproto-repo-deno/service-auth.ts
+    line: 12
+    codegraphId: interface:917aa49d7556f04395e50ef78ffea4a9
+  - name: signServiceAuth
+    kind: function
+    signature: '(signer: Signer, opts: ServiceAuthOptions): Promise<string>'
+    file: lib/atproto-repo-deno/service-auth.ts
+    line: 18
+    codegraphId: function:f11aecc30653d50d6ac86f5d953ad4e3
+  - name: VerifyServiceAuthOptions
+    kind: interface
+    file: lib/atproto-repo-deno/service-auth.ts
+    line: 64
+    codegraphId: interface:c6a5e87a7a04735ed8077142c0b7ec37
+  - name: verifyServiceAuthToken
+    kind: function
+    signature: |-
+      (
+        token: string,
+        opts: VerifyServiceAuthOptions,
+      ): Promise<{ iss: Did } | null>
+    file: lib/atproto-repo-deno/service-auth.ts
+    line: 73
+    codegraphId: function:bbf87f02c552d289a5635b9002d7c4a5
+  - name: signerFromKeypair
+    kind: function
+    signature: '(kp: Secp256k1Keypair): Signer'
+    file: lib/atproto-repo-deno/signer.ts
+    line: 4
+    codegraphId: function:2f89c606ae5e1b54b5c7fe0157160ba0
+  - name: signerFromPrivateKeyHex
+    kind: function
+    signature: '(hex: string): Promise<Signer>'
+    file: lib/atproto-repo-deno/signer.ts
+    line: 15
+    codegraphId: function:06e7ca4348a3e4f0d985f3502c754f17
+  - name: createVerifier
+    kind: function
+    signature: '(): Verifier'
+    file: lib/atproto-repo-deno/signer.ts
+    line: 20
+    codegraphId: function:b68f2d498225520650b7f337a28b4e7b
+  - name: verifierFromKeypair
+    kind: function
+    signature: '(_kp: Secp256k1Keypair): Verifier'
+    file: lib/atproto-repo-deno/signer.ts
+    line: 28
+    codegraphId: function:614b56ba7a356b0d07d1c49c98255ccc
+  fingerprint: 1923f0c542bcdcae4b109351dbf2cb6a8f76810c8f2807ecdf791a3876393ea1

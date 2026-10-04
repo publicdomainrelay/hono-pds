@@ -1,0 +1,21 @@
+syncedFingerprint: f2f7f31f319a39ab0c99fac160b7f2fdf4ecf25f91edb3ec9f31f0de06e926bc
+realizedSpecHash: b7dfdba16cb340a5e81515b018853ebe76b46ac30a1bee7b8ca1f01c84a628c1
+conditions:
+- type: CodeSynced
+  status: "True"
+  reason: InterfacesObserved
+  message: every declared interface is observed, nothing undeclared is exported and
+    every requirement code ref resolves
+- type: Drifted
+  status: "False"
+  reason: FingerprintEqual
+  message: observed facts match the synced fingerprint
+- type: SpecValid
+  status: "True"
+  reason: ValidatorPassed
+  message: the spec passes the validator
+observed:
+  files:
+  - test/cli_smoke_test.ts
+  - test/integration_test.ts
+  fingerprint: f2f7f31f319a39ab0c99fac160b7f2fdf4ecf25f91edb3ec9f31f0de06e926bc

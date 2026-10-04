@@ -1,0 +1,190 @@
+syncedFingerprint: 16e698cea6aae43d8307085893a003369301affeb5483192f85b6b4487d24fb5
+realizedSpecHash: d59d433d3cad91ee965be4c04b91976b0ec8198ff06b0d12443785a6dc7cdf25
+conditions:
+- type: CodeSynced
+  status: "False"
+  reason: InterfacesMissing
+  message: 'undeclared: BlockStore, CommitEvent, CommitOp, Did, Hasher, Mst, Mst.constructor,
+    Mst.delete, Mst.entries, Mst.get, Mst.init, Mst.root, Mst.set, Mst.size, RepoApi,
+    RepoStore, SequencedFrame, Sequencer, Signer, Storage, Verifier, WriteOp, XrpcError,
+    XrpcError.constructor, XrpcError.toJSON, XrpcErrorName, collect, createMst, diff'
+- type: Drifted
+  status: "False"
+  reason: FingerprintEqual
+  message: observed facts match the synced fingerprint
+- type: SpecValid
+  status: "True"
+  reason: ValidatorPassed
+  message: the spec passes the validator
+observed:
+  files:
+  - lib/abc/atproto-repo/contracts.ts
+  - lib/abc/atproto-repo/mod.ts
+  - lib/abc/atproto-repo/mst.ts
+  treeFiles:
+  - lib/abc/atproto-repo/deno.json
+  interfaces:
+  - name: Did
+    kind: type_alias
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 5
+    codegraphId: type_alias:a1226aa30ef5c6cb159992d26f8819f1
+  - name: Signer
+    kind: interface
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 7
+    codegraphId: interface:dff784d3c8e1096efe4c6892577951e4
+  - name: Verifier
+    kind: interface
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 12
+    codegraphId: interface:abbbf2c2ea9f8a447e68f395be386460
+  - name: Hasher
+    kind: type_alias
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 16
+    codegraphId: type_alias:0df65e39f6a148eb2b288ce202a29d17
+  - name: BlockStore
+    kind: interface
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 18
+    codegraphId: interface:d8a5a6727dd69258cce4145426171842
+  - name: RepoStore
+    kind: interface
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 24
+    codegraphId: interface:e903899c25d74d22aaf1eeeb37b96e8b
+  - name: Storage
+    kind: interface
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 29
+    codegraphId: interface:c8d7c80c6db87b26bc346da64519e701
+  - name: CommitOp
+    kind: interface
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 31
+    codegraphId: interface:031452914ceefd78c22f16a129903ca1
+  - name: CommitEvent
+    kind: interface
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 38
+    codegraphId: interface:1f3969dfbc5f3382890c510bbd4419a0
+  - name: SequencedFrame
+    kind: type_alias
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 48
+    codegraphId: type_alias:ddf028621b1d7f7d7e6c8aeec1665727
+  - name: Sequencer
+    kind: interface
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 50
+    codegraphId: interface:5830c128346ccf4915cd2d4d97381761
+  - name: WriteOp
+    kind: interface
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 58
+    codegraphId: interface:3f01cd6513e21ba8df14ea6942af520f
+  - name: RepoApi
+    kind: interface
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 65
+    codegraphId: interface:9e42467bdbb97b746400f797e24ce6ab
+  - name: XrpcErrorName
+    kind: type_alias
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 88
+    codegraphId: type_alias:a3e8babba3fef67886d0a412b9fbc5ad
+  - name: XrpcError
+    kind: class
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 105
+    codegraphId: class:ab9080c52a15284a59b5097300b9a82c
+  - name: XrpcError.constructor
+    kind: method
+    signature: '(error: XrpcErrorName, message: string, status?: number)'
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 109
+    codegraphId: method:79298215b0ee8b76add8eb6babc1d724
+  - name: XrpcError.toJSON
+    kind: method
+    signature: '(): { error: string; message: string }'
+    file: lib/abc/atproto-repo/contracts.ts
+    line: 116
+    codegraphId: method:12cefd530567d2dc4ddd740467caa8ef
+  - name: Mst
+    kind: class
+    file: lib/abc/atproto-repo/mst.ts
+    line: 526
+    codegraphId: class:d06445ebf113879bfe039963f6a5bd8b
+  - name: Mst.constructor
+    kind: method
+    signature: '(store: BlockStore, root: Cid | null, sha256Fn: Hasher)'
+    file: lib/abc/atproto-repo/mst.ts
+    line: 533
+    codegraphId: method:084ea7f460759c021139ca67768f3afb
+  - name: Mst.root
+    kind: method
+    signature: '(): Cid | null'
+    file: lib/abc/atproto-repo/mst.ts
+    line: 541
+    codegraphId: method:9a8218f29f90f644da1d3c5674e4b6ca
+  - name: Mst.size
+    kind: method
+    signature: '(): number'
+    file: lib/abc/atproto-repo/mst.ts
+    line: 545
+    codegraphId: method:6562026cb874eca2c60ebeacf277d51d
+  - name: Mst.init
+    kind: method
+    signature: '(): Promise<void>'
+    file: lib/abc/atproto-repo/mst.ts
+    line: 549
+    codegraphId: method:09620b4b198aecdd760d052de7007bb3
+  - name: Mst.get
+    kind: method
+    signature: '(key: string): Promise<Cid | null>'
+    file: lib/abc/atproto-repo/mst.ts
+    line: 560
+    codegraphId: method:5a6b08fc1acb875cce264c92e5a7343e
+  - name: Mst.set
+    kind: method
+    signature: '(key: string, value: Cid): Promise<Cid>'
+    file: lib/abc/atproto-repo/mst.ts
+    line: 567
+    codegraphId: method:d13e4b77bb13407d233ab091e93a3de5
+  - name: Mst.delete
+    kind: method
+    signature: '(key: string): Promise<Cid | null>'
+    file: lib/abc/atproto-repo/mst.ts
+    line: 591
+    codegraphId: method:77380b4de741a5b9ff159da548f87e63
+  - name: Mst.entries
+    kind: method
+    signature: '(): AsyncIterable<{ key: string; value: Cid }>'
+    file: lib/abc/atproto-repo/mst.ts
+    line: 620
+    codegraphId: method:e6f7b846ce82c79eeec9641d58aca61f
+  - name: diff
+    kind: function
+    signature: |-
+      (
+        store: BlockStore,
+        oldRoot: Cid | null,
+        newRoot: Cid | null,
+      ): Promise<Cid[]>
+    file: lib/abc/atproto-repo/mst.ts
+    line: 674
+    codegraphId: function:ff5f6ab5e4d797e00a99ac8e769e4643
+  - name: collect
+    kind: function
+    signature: '(cid: Cid | null, set: Set<Cid>): Promise<void>'
+    file: lib/abc/atproto-repo/mst.ts
+    line: 682
+    codegraphId: function:90dc40a4968e57f7f57f0cb6652039e8
+  - name: createMst
+    kind: function
+    signature: '(store: BlockStore, sha256Fn: Hasher, root?: Cid | null): Mst'
+    file: lib/abc/atproto-repo/mst.ts
+    line: 701
+    codegraphId: function:3905cbfd5760c8c30faff386505e6c1c
+  fingerprint: 16e698cea6aae43d8307085893a003369301affeb5483192f85b6b4487d24fb5

@@ -1,0 +1,14 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SystemContext
+metadata:
+  name: lib-abc-atproto-repo
+  namespace: default
+spec:
+  repository: hono-pds
+  upstream: self
+  dependsOn:
+  - sc.hono-pds
+codeRefIndex:
+- file:lib/abc/atproto-repo/contracts.ts contracts.ts@lib/abc/atproto-repo/contracts.ts
+- file:lib/abc/atproto-repo/mod.ts mod.ts@lib/abc/atproto-repo/mod.ts
+- file:lib/abc/atproto-repo/mst.ts mst.ts@lib/abc/atproto-repo/mst.ts

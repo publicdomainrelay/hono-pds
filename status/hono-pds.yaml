@@ -1,0 +1,59 @@
+syncedFingerprint: e202da8e015cbf5a94d829c26021ecf3dcc73d9e0a18f8bb1c738019220cdd4e
+realizedSpecHash: a7d9c0cdb98ef56b1d0ec18f8eb8dc1b3fa53ef2c3bb97929b3c92c356555f3a
+conditions:
+- type: CodeSynced
+  status: "False"
+  reason: InterfacesMissing
+  message: 'undeclared: CreateFromEnvOptions, StartOptions, StartResult, createFromEnv,
+    start'
+- type: Drifted
+  status: "False"
+  reason: FingerprintEqual
+  message: observed facts match the synced fingerprint
+- type: SpecValid
+  status: "True"
+  reason: ValidatorPassed
+  message: the spec passes the validator
+observed:
+  files:
+  - main.ts
+  treeFiles:
+  - .gitignore
+  - ARCHITECTURE_REPORT.md
+  - ATPROTO_DOCS_COMPARISON.md
+  - LICENSE
+  - SPEC_DELTA_REPORT.md
+  - cli-args-env.json
+  - config.json
+  - deno.json
+  - deno.lock
+  - trusted-deno.json
+  interfaces:
+  - name: CreateFromEnvOptions
+    kind: interface
+    file: main.ts
+    line: 12
+    codegraphId: interface:9e33edf403a8421c9005065417701a8b
+  - name: createFromEnv
+    kind: function
+    signature: '(opts?: CreateFromEnvOptions): Promise<RepoFactory>'
+    file: main.ts
+    line: 20
+    codegraphId: function:6d4615056e267ea626ccfe4721e8c7e9
+  - name: StartResult
+    kind: interface
+    file: main.ts
+    line: 61
+    codegraphId: interface:320a7c33d923f7e0048407e6a52e340d
+  - name: StartOptions
+    kind: interface
+    file: main.ts
+    line: 68
+    codegraphId: interface:aa5b00cd4b1a22b790ac1a9fd4dbebcb
+  - name: start
+    kind: function
+    signature: '(options: StartOptions): Promise<StartResult>'
+    file: main.ts
+    line: 78
+    codegraphId: function:801fee3a6255e197b1fd30a72241ed54
+  fingerprint: e202da8e015cbf5a94d829c26021ecf3dcc73d9e0a18f8bb1c738019220cdd4e

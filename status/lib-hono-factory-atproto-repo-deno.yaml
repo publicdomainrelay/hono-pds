@@ -1,0 +1,133 @@
+syncedFingerprint: b3b0f7aab810d7bf8908900e2c6dccffc53e37b9069410b15e700085c64d3170
+realizedSpecHash: 9e1c3cd99db9a41d586891cdf313ffb7cb3e1d153aacb1941dab46c3411da642
+conditions:
+- type: CodeSynced
+  status: "False"
+  reason: InterfacesMissing
+  message: 'undeclared: FirehoseSequencer, FirehoseSequencer.append, FirehoseSequencer.appendAccount,
+    FirehoseSequencer.appendIdentity, FirehoseSequencer.backfill, FirehoseSequencer.live,
+    RepoFactory, RepoFactoryOptions, SyncHandlerOptions, createRepoFactory, createSubscribeHandler,
+    handleGetServiceAuth, mountRepoRoutes, mountSyncRoutes, requireAdminAuth, requireAuth,
+    resolveIssuer'
+- type: Drifted
+  status: "False"
+  reason: FingerprintEqual
+  message: observed facts match the synced fingerprint
+- type: SpecValid
+  status: "True"
+  reason: ValidatorPassed
+  message: the spec passes the validator
+observed:
+  files:
+  - lib/hono-factory-atproto-repo-deno/factory.ts
+  - lib/hono-factory-atproto-repo-deno/mod.ts
+  - lib/hono-factory-atproto-repo-deno/repo-handlers.ts
+  - lib/hono-factory-atproto-repo-deno/sequencer.ts
+  - lib/hono-factory-atproto-repo-deno/subscribe.ts
+  - lib/hono-factory-atproto-repo-deno/sync-handlers.ts
+  treeFiles:
+  - lib/hono-factory-atproto-repo-deno/deno.json
+  interfaces:
+  - name: RepoFactoryOptions
+    kind: interface
+    file: lib/hono-factory-atproto-repo-deno/factory.ts
+    line: 38
+    codegraphId: interface:07662ba591afb7adbc3f084fcfd2254c
+  - name: RepoFactory
+    kind: interface
+    file: lib/hono-factory-atproto-repo-deno/factory.ts
+    line: 84
+    codegraphId: interface:7f38a4622a122cde3aedc658c6d7f484
+  - name: createRepoFactory
+    kind: function
+    signature: '(opts: RepoFactoryOptions): RepoFactory'
+    file: lib/hono-factory-atproto-repo-deno/factory.ts
+    line: 153
+    codegraphId: function:3b92f5560561f352bf01db889ca378c8
+  - name: requireAdminAuth
+    kind: function
+    signature: '(c: { req: { header: (name: string) => string | undefined }; json:
+      (body: unknown, status: number) => unknown }, next: () => Promise<void>)'
+    file: lib/hono-factory-atproto-repo-deno/factory.ts
+    line: 229
+    codegraphId: function:12cc6ce1cb747a3667f3a8ef2fadfdf7
+  - name: requireAuth
+    kind: function
+    signature: '(c: { req: { header: (name: string) => string | undefined; path?:
+      string }; json: (body: unknown, status: number) => unknown; set: (k: string,
+      v: unknown) => void; get: (k: string) => unknown }, next: () => Promise<void>)'
+    file: lib/hono-factory-atproto-repo-deno/factory.ts
+    line: 247
+    codegraphId: function:e468b70406135c44ce7c00717ba47aef
+  - name: handleGetServiceAuth
+    kind: function
+    signature: '(c: { req: { query: (name: string) => string | undefined }; json:
+      (body: unknown, status?: number) => unknown })'
+    file: lib/hono-factory-atproto-repo-deno/factory.ts
+    line: 471
+    codegraphId: function:4a6197b7bae76874106795909fed1a5b
+  - name: resolveIssuer
+    kind: function
+    signature: '(c: { req: { header: (n: string) => string | undefined } }): string'
+    file: lib/hono-factory-atproto-repo-deno/factory.ts
+    line: 559
+    codegraphId: function:74a83283e66ddd78814ad23ab8491bf1
+  - name: mountRepoRoutes
+    kind: function
+    signature: '(app: Hono, repo: RepoApi): void'
+    file: lib/hono-factory-atproto-repo-deno/repo-handlers.ts
+    line: 33
+    codegraphId: function:9f323ef8cfc4c2aec3f2c6d52a43cb4a
+  - name: FirehoseSequencer
+    kind: class
+    file: lib/hono-factory-atproto-repo-deno/sequencer.ts
+    line: 10
+    codegraphId: class:0358cb2ffa8565f9d4cf74dee43f2c2e
+  - name: FirehoseSequencer.append
+    kind: method
+    signature: '(evt: CommitEvent): SequencedFrame'
+    file: lib/hono-factory-atproto-repo-deno/sequencer.ts
+    line: 15
+    codegraphId: method:62ec1d7d3af726f14822c8c5c63f7fa2
+  - name: FirehoseSequencer.appendIdentity
+    kind: method
+    signature: '(did: string, handle?: string): SequencedFrame'
+    file: lib/hono-factory-atproto-repo-deno/sequencer.ts
+    line: 43
+    codegraphId: method:1304b3d01823f926c35cddd0cf3f6f04
+  - name: FirehoseSequencer.appendAccount
+    kind: method
+    signature: '(did: string, active: boolean, status?: string): SequencedFrame'
+    file: lib/hono-factory-atproto-repo-deno/sequencer.ts
+    line: 57
+    codegraphId: method:c6c8e631b702ca84ae0260ef580265f1
+  - name: FirehoseSequencer.backfill
+    kind: method
+    signature: '(since?: number): AsyncIterable<SequencedFrame>'
+    file: lib/hono-factory-atproto-repo-deno/sequencer.ts
+    line: 72
+    codegraphId: method:2ec31de8f5799aa6438da1681f2fe590
+  - name: FirehoseSequencer.live
+    kind: method
+    signature: '(): AsyncIterable<SequencedFrame>'
+    file: lib/hono-factory-atproto-repo-deno/sequencer.ts
+    line: 81
+    codegraphId: method:ee74976464b4798bd9ede8cd366cf125
+  - name: createSubscribeHandler
+    kind: function
+    signature: '(sequencer: Sequencer): SubscribeHandler'
+    file: lib/hono-factory-atproto-repo-deno/subscribe.ts
+    line: 4
+    codegraphId: function:9bc40adeddb1771c452af7d31ee99b7f
+  - name: SyncHandlerOptions
+    kind: interface
+    file: lib/hono-factory-atproto-repo-deno/sync-handlers.ts
+    line: 7
+    codegraphId: interface:14e3099fa1f0a95707a0951a37fbd296
+  - name: mountSyncRoutes
+    kind: function
+    signature: '(app: Hono, opts: SyncHandlerOptions): void'
+    file: lib/hono-factory-atproto-repo-deno/sync-handlers.ts
+    line: 12
+    codegraphId: function:e74f80ecb4ebb358a2c874afb7ab378e
+  fingerprint: b3b0f7aab810d7bf8908900e2c6dccffc53e37b9069410b15e700085c64d3170
