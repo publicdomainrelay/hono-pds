@@ -218,3 +218,4 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 | test-atproto-repo-deno-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | test-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | test-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
+| test-conformance-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
