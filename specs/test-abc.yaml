@@ -8,5 +8,63 @@ spec:
   upstream: self
   dependsOn:
   - sc.hono-pds
+  intent: This context exists to pin down the expected observable behavior of the
+    MST abstraction as exercised through its Deno test suite, so the tree contract
+    (initial state, key/value round trips, mutation, iteration, and content-addressed
+    determinism) can be verified and used as a reference when the underlying implementation
+    changes. It documents the test file rather than the implementation, and the assertions
+    in it are the executable statement of that contract.
+  requirements:
+  - id: r.async-entries-iteration
+    level: MUST
+    text: entries() returns an async iterable yielding { key, value } objects, and
+      after setting two distinct keys it yields exactly two entries.
+    codeRefs:
+    - file:test/abc/mst_test.ts
+  - id: r.delete-removes-key
+    level: MUST
+    text: delete(key) removes the key from the tree, so get(key) afterwards returns
+      null.
+    codeRefs:
+    - file:test/abc/mst_test.ts
+  - id: r.deterministic-test-cids
+    level: SHOULD
+    text: Test CIDs are synthesized by filling a 32-byte digest with a constant byte
+      and passing it through cidFromDigest from @publicdomainrelay/atproto-repo-common,
+      so assertions compare stable CIDs across runs.
+    codeRefs:
+    - file:test/abc/mst_test.ts
+  - id: r.empty-tree-init
+    level: MUST
+    text: After createMst(store, sha256) and init(), a fresh MST over an empty MemoryStorage
+      reports root === null and size === 0.
+    codeRefs:
+    - file:test/abc/mst_test.ts
+  - id: r.root-cid-determinism
+    level: MUST
+    text: Two independently constructed MSTs backed by separate MemoryStorage instances
+      produce identical root CIDs after being given the same key-to-CID mapping, so
+      the root is a deterministic function of tree contents and not of insertion history
+      or store identity.
+    codeRefs:
+    - file:test/abc/mst_test.ts
+  - id: r.set-get-roundtrip
+    level: MUST
+    text: set(key, cid) followed by get(key) returns the same CID that was stored,
+      for a key such as "com.example.record/abc123".
+    codeRefs:
+    - file:test/abc/mst_test.ts
+  - id: r.set-overwrites
+    level: MUST
+    text: Calling set on an existing key replaces the prior value, so a subsequent
+      get returns the most recently written CID rather than the first one.
+    codeRefs:
+    - file:test/abc/mst_test.ts
+  - id: r.sha256-hasher
+    level: SHOULD
+    text: The Hasher supplied to createMst is a SHA-256 digest over the raw byte range
+      of the input (respecting byteOffset and byteLength), returned as a Uint8Array.
+    codeRefs:
+    - file:test/abc/mst_test.ts
 codeRefIndex:
 - file:test/abc/mst_test.ts mst_test.ts@test/abc/mst_test.ts

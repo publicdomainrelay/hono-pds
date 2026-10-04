@@ -159,6 +159,32 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 - added `r.worker-init-and-dispatch` (MUST): "worker-launcher.ts builds the application once via createFromEnv() from main.ts on the init message and answers ready on success or error with the failure text on failure; on each request message it reconstructs a Request from the posted method, url, headers and optional body bytes, calls app.fetch, and replies with a response message carrying the same id plus status, header entries and body bytes, replying status 500 with an empty header list and null body when the app is not yet initialized or the call throws."
 - added `r.worker-shutdown-close` (MUST): "On a shutdown message the worker replies with a stopped message and closes itself, so the launcher terminates without the main thread having to kill it."
 
+### test
+
+- intent: "" -> "This context exists to pin down what the repository's automated tests actually assert, so that implementation changes elsewhere in hono-pds can be checked against the contracts the suite already enforces. It is the executable definition of the PDS's external surface as the tests see it: the CLI must start and accept `--help`, the health route must answer over HTTP with a version string, and the record-write path must accept an account creation, a service-auth JWT scoped to the PDS DID, and a `createRecord` call, returning the created record's URI and CID. It also fixes the test harness conventions — ephemeral ports, deterministic teardown, per-test keypairs — that keep the suite hermetic and cheap to run in CI."
+- added `r.account-then-service-auth` (MUST): "Before the authenticated write, the test creates an account through POST /xrpc/com.atproto.server.createAccount, reads the returned DID, retrieves that account's signer from the factory (throwing if absent), and derives the Bearer token by signing a service-auth JWT for that signer."
+- added `r.cli-help-exits-zero` (MUST): "The CLI smoke test spawns `deno run -A main.ts --help` with the repository root as the working directory and captures both stdout and stderr; the process must exit with code 0, so `--help` is handled without error."
+- added `r.create-record-over-http` (MUST): "An integration test posts to /xrpc/com.atproto.repo.createRecord with a JSON body carrying `repo`, `collection` and `record`, presents a service-auth JWT as `Authorization: Bearer <token>`, and asserts status 200 with both `uri` and `cid` present in the JSON response."
+- added `r.ephemeral-port-binding` (MUST): "Each HTTP integration test binds port 0 and resolves the actual listening port from the server's onListen callback before issuing any fetch, keeping tests free of fixed-port collisions."
+- added `r.fresh-signer-and-memory-storage` (MUST): "Every test constructs its factory from a newly generated Secp256k1 keypair wrapped by signerFromKeypair and from a fresh MemoryStorage instance, so tests share no signer, no repository state and no persistence."
+- added `r.health-route-over-http` (MUST): "An integration test serves the factory's fetch handler on an HTTP port and asserts that GET /xrpc/_health responds with status 200 and a JSON body containing an existing, non-null `version` field."
+- added `r.in-process-app-request` (SHOULD): "Account creation in the integration test goes through `factory.app.request` directly against the Hono app rather than over the network, while record writes go over real HTTP, exercising both the in-process and served paths."
+- added `r.published-package-imports` (SHOULD): "The integration test imports createRepoFactory, MemoryStorage, signerFromKeypair and signServiceAuth from the published JSR packages (@publicdomainrelay/hono-factory-atproto-repo-deno and @publicdomainrelay/atproto-repo-deno), with Secp256k1Keypair from @atproto/crypto, so the suite tests the packages as consumers receive them."
+- added `r.server-teardown-in-finally` (MUST): "Each HTTP integration test aborts its AbortController and awaits the server's `finished` promise inside a `finally` block, so the listener is torn down even when an assertion fails."
+- added `r.service-auth-audience-is-pds-did` (MUST): "The signed service-auth token sets its audience to the PDS signer's own DID, so the token is issued for the PDS the record is written to rather than for the account."
+
+### test-abc
+
+- intent: "" -> "This context exists to pin down the expected observable behavior of the MST abstraction as exercised through its Deno test suite, so the tree contract (initial state, key/value round trips, mutation, iteration, and content-addressed determinism) can be verified and used as a reference when the underlying implementation changes. It documents the test file rather than the implementation, and the assertions in it are the executable statement of that contract."
+- added `r.async-entries-iteration` (MUST): "entries() returns an async iterable yielding { key, value } objects, and after setting two distinct keys it yields exactly two entries."
+- added `r.delete-removes-key` (MUST): "delete(key) removes the key from the tree, so get(key) afterwards returns null."
+- added `r.deterministic-test-cids` (SHOULD): "Test CIDs are synthesized by filling a 32-byte digest with a constant byte and passing it through cidFromDigest from @publicdomainrelay/atproto-repo-common, so assertions compare stable CIDs across runs."
+- added `r.empty-tree-init` (MUST): "After createMst(store, sha256) and init(), a fresh MST over an empty MemoryStorage reports root === null and size === 0."
+- added `r.root-cid-determinism` (MUST): "Two independently constructed MSTs backed by separate MemoryStorage instances produce identical root CIDs after being given the same key-to-CID mapping, so the root is a deterministic function of tree contents and not of insertion history or store identity."
+- added `r.set-get-roundtrip` (MUST): "set(key, cid) followed by get(key) returns the same CID that was stored, for a key such as "com.example.record/abc123"."
+- added `r.set-overwrites` (MUST): "Calling set on an existing key replaces the prior value, so a subsequent get returns the most recently written CID rather than the first one."
+- added `r.sha256-hasher` (SHOULD): "The Hasher supplied to createMst is a SHA-256 digest over the raw byte range of the input (respecting byteOffset and byteLength), returned as a Uint8Array."
+
 ## Realization
 
 | change | direction | phase | commit | verify | acceptance |
@@ -174,5 +200,5 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 | lib-hono-factory-atproto-repo-deno-lexicons-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | lib-hono-factory-atproto-repo-deno-lexicons-c2s-fa8920306bc4-fa8920306bc4-a2 | CodeToSpec | Succeeded |  | 0 | - |
 | scripts-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
-| test-abc-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
-| test-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
+| test-abc-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
+| test-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |

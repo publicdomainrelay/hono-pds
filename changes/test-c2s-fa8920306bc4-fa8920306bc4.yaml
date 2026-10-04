@@ -9,5 +9,23 @@ spec:
   fromCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
   toCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
 status:
-  phase: Running
-  message: the agent is summarizing test
+  phase: Succeeded
+  agentLog: 'The test context holds hono-pds''s end-to-end Deno test suite: test/cli_smoke_test.ts
+    spawns the CLI as a subprocess and test/integration_test.ts boots the PDS factory
+    in-process and drives it over real HTTP. The smoke test runs `deno run -A main.ts
+    --help` from the repository root and asserts the process exits with code 0, covering
+    flag parsing and startup wiring without touching the network. The integration
+    tests build a repo factory from a freshly generated Secp256k1 keypair and a MemoryStorage
+    backend, serve `factory.app.fetch` on an ephemeral port via `Deno.serve`, and
+    exercise two XRPC routes: an unauthenticated GET of `/xrpc/_health` (expecting
+    200 and a `version` field in the JSON body) and an authenticated POST of `/xrpc/com.atproto.repo.createRecord`
+    (expecting 200 and `uri` plus `cid` in the response). Authentication in the second
+    test goes through a service-auth JWT: the test first calls `/xrpc/com.atproto.server.createAccount`
+    to mint an account, pulls that account''s signer out of the factory, and signs
+    a token whose audience is the PDS''s own DID, which is then sent as a Bearer credential.
+    Both HTTP tests follow the same lifecycle shape — bind port 0, read the real port
+    from the `onListen` callback, and tear the server down in a `finally` block by
+    aborting an AbortController and awaiting `server.finished` — so no test leaves
+    a listener behind.'
+  message: wrote 10 requirement(s) and 0 interface(s) for test; dropped 3 unresolved
+    code ref(s); interface signServiceAuth is not in the observed facts; dropped
