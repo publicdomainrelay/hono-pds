@@ -136,6 +136,15 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 - added `r.subscribe-handler` (MUST): "createSubscribeHandler must build a SubscribeHandler from the given Sequencer so firehose subscribers are served from the sequencer's backfill and live streams."
 - added `r.sync-routes` (MUST): "mountSyncRoutes must register the sync endpoints on the given Hono app using the supplied SyncHandlerOptions, which carry the dependencies the sync handlers need."
 
+### lib-hono-factory-atproto-repo-deno-lexicons
+
+- intent: "" -> "This context exists so the factory layer can resolve an NSID to its full lexicon document at runtime without embedding schema copies. It gives the Deno atproto repo implementation one typed, read-only lookup over the com.atproto lexicons it serves - repo read/write (createRecord, getRecord, listRecords, uploadBlob, describeRepo), sync (subscribeRepos), server session and account methods (describeServer, createAccount, createSession, refreshSession), and identity methods (resolveHandle, updateHandle) - so request validation and response shaping can be driven by the stored JSON schemas rather than hardcoded shapes."
+- added `r.json-source-of-truth` (SHOULD): "Each registry entry is imported from a JSON lexicon document stored under the lexicons directory at the path formed by the NSID's dot-separated segments, so the JSON files remain the authoritative schema source and the TypeScript module only indexes them."
+- added `r.lexicon-schema-shape` (MUST): "A lexicon document is represented by the LexiconSchema interface with a literal lexicon version of 1, an id field carrying the NSID string, and a defs record of unknown-valued definitions, so consumers can read the NSID and the raw definition map without narrowing or re-parsing the source JSON."
+- added `r.lookup-by-nsid` (MUST): "getLexicon(nsid) looks the argument up as a key in the module's lexicon record and returns the registered LexiconSchema, or undefined when the NSID is not registered, so callers can test for absence rather than catching a throw."
+- added `r.read-only-surface` (SHOULD): "The registry is module-private and exposed only through getLexicon plus the LexiconSchema type export, so importers such as the factory's mod.ts can read and validate against lexicons but cannot mutate or replace them at runtime."
+- added `r.registered-nsid-set` (MUST): "The registry maps exactly twelve NSIDs - com.atproto.repo.createRecord, getRecord, listRecords, uploadBlob, describeRepo, com.atproto.sync.subscribeRepos, com.atproto.server.describeServer, createAccount, createSession, refreshSession, com.atproto.identity.resolveHandle and updateHandle - each to its imported document cast to LexiconSchema, so getLexicon resolves every method the factory serves and returns undefined for anything else."
+
 ## Realization
 
 | change | direction | phase | commit | verify | acceptance |
@@ -148,4 +157,6 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 | lib-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | lib-common-oauth-server-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | lib-hono-factory-atproto-repo-deno-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
-| lib-hono-factory-atproto-repo-deno-lexicons-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
+| lib-hono-factory-atproto-repo-deno-lexicons-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
+| lib-hono-factory-atproto-repo-deno-lexicons-c2s-fa8920306bc4-fa8920306bc4-a2 | CodeToSpec | Running |  | 0 | - |
+| scripts-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |

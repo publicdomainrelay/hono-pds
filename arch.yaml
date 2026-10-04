@@ -459,8 +459,21 @@ system_contexts:
   upstream: self
   depends_on:
   - sc.hono-pds
+  requirements:
+  - id: r.json-source-of-truth
+    level: SHOULD
+  - id: r.lexicon-schema-shape
+    level: MUST
+  - id: r.lookup-by-nsid
+    level: MUST
+  - id: r.read-only-surface
+    level: SHOULD
+  - id: r.registered-nsid-set
+    level: MUST
   codeRefIndex:
   - file:lib/hono-factory-atproto-repo-deno/lexicons/index.ts index.ts@lib/hono-factory-atproto-repo-deno/lexicons/index.ts
+  - function:6103e9664172adb5c144151e19db4ac0 getLexicon@lib/hono-factory-atproto-repo-deno/lexicons/index.ts:35
+  - interface:e9404607f25e4bff7a872f8c957e6cc5 LexiconSchema@lib/hono-factory-atproto-repo-deno/lexicons/index.ts:14
 - id: sc.scripts
   name: scripts
   spec: specs/scripts.yaml

@@ -8,5 +8,71 @@ spec:
   upstream: self
   dependsOn:
   - sc.hono-pds
+  intent: This context exists so the factory layer can resolve an NSID to its full
+    lexicon document at runtime without embedding schema copies. It gives the Deno
+    atproto repo implementation one typed, read-only lookup over the com.atproto lexicons
+    it serves - repo read/write (createRecord, getRecord, listRecords, uploadBlob,
+    describeRepo), sync (subscribeRepos), server session and account methods (describeServer,
+    createAccount, createSession, refreshSession), and identity methods (resolveHandle,
+    updateHandle) - so request validation and response shaping can be driven by the
+    stored JSON schemas rather than hardcoded shapes.
+  requirements:
+  - id: r.json-source-of-truth
+    level: SHOULD
+    text: Each registry entry is imported from a JSON lexicon document stored under
+      the lexicons directory at the path formed by the NSID's dot-separated segments,
+      so the JSON files remain the authoritative schema source and the TypeScript
+      module only indexes them.
+    codeRefs:
+    - file:lib/hono-factory-atproto-repo-deno/lexicons/index.ts
+  - id: r.lexicon-schema-shape
+    level: MUST
+    text: A lexicon document is represented by the LexiconSchema interface with a
+      literal lexicon version of 1, an id field carrying the NSID string, and a defs
+      record of unknown-valued definitions, so consumers can read the NSID and the
+      raw definition map without narrowing or re-parsing the source JSON.
+    codeRefs:
+    - file:lib/hono-factory-atproto-repo-deno/lexicons/index.ts
+    - interface:e9404607f25e4bff7a872f8c957e6cc5
+  - id: r.lookup-by-nsid
+    level: MUST
+    text: getLexicon(nsid) looks the argument up as a key in the module's lexicon
+      record and returns the registered LexiconSchema, or undefined when the NSID
+      is not registered, so callers can test for absence rather than catching a throw.
+    codeRefs:
+    - file:lib/hono-factory-atproto-repo-deno/lexicons/index.ts
+    - function:6103e9664172adb5c144151e19db4ac0
+  - id: r.read-only-surface
+    level: SHOULD
+    text: The registry is module-private and exposed only through getLexicon plus
+      the LexiconSchema type export, so importers such as the factory's mod.ts can
+      read and validate against lexicons but cannot mutate or replace them at runtime.
+    codeRefs:
+    - file:lib/hono-factory-atproto-repo-deno/lexicons/index.ts
+    - function:6103e9664172adb5c144151e19db4ac0
+    - interface:e9404607f25e4bff7a872f8c957e6cc5
+  - id: r.registered-nsid-set
+    level: MUST
+    text: The registry maps exactly twelve NSIDs - com.atproto.repo.createRecord,
+      getRecord, listRecords, uploadBlob, describeRepo, com.atproto.sync.subscribeRepos,
+      com.atproto.server.describeServer, createAccount, createSession, refreshSession,
+      com.atproto.identity.resolveHandle and updateHandle - each to its imported document
+      cast to LexiconSchema, so getLexicon resolves every method the factory serves
+      and returns undefined for anything else.
+    codeRefs:
+    - file:lib/hono-factory-atproto-repo-deno/lexicons/index.ts
+    - function:6103e9664172adb5c144151e19db4ac0
+  interfaces:
+  - name: LexiconSchema
+    kind: interface
+    signature: 'interface LexiconSchema { lexicon: 1; id: string; defs: Record<string,
+      unknown> }'
+    file: lib/hono-factory-atproto-repo-deno/lexicons/index.ts
+  - name: getLexicon
+    kind: function
+    signature: 'function getLexicon(nsid: string): LexiconSchema | undefined'
+    file: lib/hono-factory-atproto-repo-deno/lexicons/index.ts
 codeRefIndex:
 - file:lib/hono-factory-atproto-repo-deno/lexicons/index.ts index.ts@lib/hono-factory-atproto-repo-deno/lexicons/index.ts
+- function:6103e9664172adb5c144151e19db4ac0 getLexicon@lib/hono-factory-atproto-repo-deno/lexicons/index.ts:35
+- interface:e9404607f25e4bff7a872f8c957e6cc5 LexiconSchema@lib/hono-factory-atproto-repo-deno/lexicons/index.ts:14

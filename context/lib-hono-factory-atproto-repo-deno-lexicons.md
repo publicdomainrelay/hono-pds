@@ -2,7 +2,7 @@
 
 Repository: `hono-pds`
 
-_(empty: write what this context is for)_
+This context exists so the factory layer can resolve an NSID to its full lexicon document at runtime without embedding schema copies. It gives the Deno atproto repo implementation one typed, read-only lookup over the com.atproto lexicons it serves - repo read/write (createRecord, getRecord, listRecords, uploadBlob, describeRepo), sync (subscribeRepos), server session and account methods (describeServer, createAccount, createSession, refreshSession), and identity methods (resolveHandle, updateHandle) - so request validation and response shaping can be driven by the stored JSON schemas rather than hardcoded shapes.
 
 _The resolved code references are regenerated on every run. Cite the ids above rather than writing them here._
 

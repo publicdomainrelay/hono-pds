@@ -1,10 +1,11 @@
 syncedFingerprint: c705b12d9a3c26e70cd844c870490cd39c9d3d44db0220955fdfebb136140ecd
-realizedSpecHash: f00ecf1dcdd7f525331e77d1fd418435fce553b7549c058b9c102e3b43d95be5
+realizedSpecHash: 9f300f91c7e4aac9d368e70b36b938c82fa14e89fcabe246790b5510f97e4456
 conditions:
 - type: CodeSynced
-  status: "False"
-  reason: InterfacesMissing
-  message: 'undeclared: LexiconSchema, getLexicon'
+  status: "True"
+  reason: InterfacesObserved
+  message: every declared interface is observed, nothing undeclared is exported and
+    every requirement code ref resolves
 - type: Drifted
   status: "False"
   reason: FingerprintEqual
