@@ -106,6 +106,16 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 - added `r.tid-type` (MUST): "Tid is the string type for AT Protocol timestamp identifiers: 13-character base32-sortable strings whose lexicographic order matches creation order."
 - added `r.utf8-codec` (MUST): "utf8Encode turns a string into its UTF-8 bytes using a shared TextEncoder and utf8Decode turns bytes back into a string using a shared TextDecoder, so the two are exact inverses and no per-call encoder is constructed."
 
+### lib-common-oauth-server-common
+
+- intent: "" -> "This context exists so the OAuth and DPoP primitives shared by the hono-pds OAuth server packages have a single described home in the common layer. It defines the byte-encoding, nonce-generation, and JWK-thumbprint helpers plus the session record shape that the OAuth server implementation and its session injector depend on, keeping the dependency direction one-way from common outward."
+- added `r.b64url-encoding` (MUST): "b64url base64-encodes the given Uint8Array and rewrites the output to the URL-safe alphabet by replacing '+' with '-' and '/' with '_' and stripping trailing '=' padding, producing an unpadded base64url string."
+- added `r.compute-jkt-canonicalization` (MUST): "computeJkt builds the RFC 7638 canonical JWK by dropping the private and non-required members d, kid, alg, key_ops, ext and use, sorting the remaining public members by key name, and serializing them with JSON.stringify without whitespace."
+- added `r.compute-jkt-thumbprint` (MUST): "computeJkt UTF-8 encodes that canonical JSON, digests it with SHA-256 via crypto.subtle.digest, and returns the digest run through b64url, giving the b64url-encoded JWK thumbprint."
+- added `r.generate-dpop-nonce` (MUST): "generateDpopNonce returns a fresh nonce by delegating to crypto.randomUUID, so each call yields a distinct UUID string usable as a DPoP nonce."
+- added `r.session-data-shape` (MUST): "OAuthSessionData carries the persisted OAuth session as required string fields accessJwt, refreshJwt, userDid, handle and pds alongside dpopPublicJwk and dpopPrivateJwk typed as Record<string, string> JWK objects, so consumers can reconstruct the DPoP key pair and reuse the tokens."
+- added `r.shared-common-layer` (SHOULD): "Because the helpers live in lib/common/oauth-server-common, the OAuth server implementation imports them (b64url and computeJkt are called from lib/atproto-oauth-server-deno/mod.ts) instead of redefining its own encoding or thumbprint code."
+
 ## Realization
 
 | change | direction | phase | commit | verify | acceptance |
@@ -116,5 +126,5 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 | lib-atproto-oauth-server-deno-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | lib-atproto-repo-deno-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | lib-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
-| lib-common-oauth-server-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
+| lib-common-oauth-server-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | lib-hono-factory-atproto-repo-deno-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |

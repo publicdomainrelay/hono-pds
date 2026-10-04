@@ -2,7 +2,7 @@
 
 Repository: `hono-pds`
 
-_(empty: write what this context is for)_
+This context exists so the OAuth and DPoP primitives shared by the hono-pds OAuth server packages have a single described home in the common layer. It defines the byte-encoding, nonce-generation, and JWK-thumbprint helpers plus the session record shape that the OAuth server implementation and its session injector depend on, keeping the dependency direction one-way from common outward.
 
 _The resolved code references are regenerated on every run. Cite the ids above rather than writing them here._
 

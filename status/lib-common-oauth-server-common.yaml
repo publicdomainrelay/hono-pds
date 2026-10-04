@@ -1,10 +1,11 @@
 syncedFingerprint: 2e8b54f5f4cfc69053d673ab6aa9ef98c272c1838c00362760fa78e07fd67ff4
-realizedSpecHash: ff48b1e429738e83e85a6bf9568cd5e795339323566d64f57b68aa8d609b7261
+realizedSpecHash: d0fabd470da5493c22e7af5b6924c20ed0efef6133635a395ea25f7c47ad4b01
 conditions:
 - type: CodeSynced
-  status: "False"
-  reason: InterfacesMissing
-  message: 'undeclared: OAuthSessionData, b64url, computeJkt, generateDpopNonce'
+  status: "True"
+  reason: InterfacesObserved
+  message: every declared interface is observed, nothing undeclared is exported and
+    every requirement code ref resolves
 - type: Drifted
   status: "False"
   reason: FingerprintEqual

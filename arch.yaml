@@ -371,8 +371,25 @@ system_contexts:
   upstream: self
   depends_on:
   - sc.hono-pds
+  requirements:
+  - id: r.b64url-encoding
+    level: MUST
+  - id: r.compute-jkt-canonicalization
+    level: MUST
+  - id: r.compute-jkt-thumbprint
+    level: MUST
+  - id: r.generate-dpop-nonce
+    level: MUST
+  - id: r.session-data-shape
+    level: MUST
+  - id: r.shared-common-layer
+    level: SHOULD
   codeRefIndex:
   - file:lib/common/oauth-server-common/mod.ts mod.ts@lib/common/oauth-server-common/mod.ts
+  - function:5810e31edf2e6e95afc34833da48dc86 b64url@lib/common/oauth-server-common/mod.ts:17
+  - function:693ae22c42b1d574a4b56af51d12c703 computeJkt@lib/common/oauth-server-common/mod.ts:23
+  - function:da455fe1f77703d9b1b570ac018ae475 generateDpopNonce@lib/common/oauth-server-common/mod.ts:13
+  - interface:3ea5feb96bfcd60114c5b7bb013568cb OAuthSessionData@lib/common/oauth-server-common/mod.ts:38
 - id: sc.lib-hono-factory-atproto-repo-deno
   name: lib-hono-factory-atproto-repo-deno
   spec: specs/lib-hono-factory-atproto-repo-deno.yaml

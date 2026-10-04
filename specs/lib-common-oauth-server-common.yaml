@@ -8,5 +8,82 @@ spec:
   upstream: self
   dependsOn:
   - sc.hono-pds
+  intent: This context exists so the OAuth and DPoP primitives shared by the hono-pds
+    OAuth server packages have a single described home in the common layer. It defines
+    the byte-encoding, nonce-generation, and JWK-thumbprint helpers plus the session
+    record shape that the OAuth server implementation and its session injector depend
+    on, keeping the dependency direction one-way from common outward.
+  requirements:
+  - id: r.b64url-encoding
+    level: MUST
+    text: b64url base64-encodes the given Uint8Array and rewrites the output to the
+      URL-safe alphabet by replacing '+' with '-' and '/' with '_' and stripping trailing
+      '=' padding, producing an unpadded base64url string.
+    codeRefs:
+    - file:lib/common/oauth-server-common/mod.ts
+    - function:5810e31edf2e6e95afc34833da48dc86
+  - id: r.compute-jkt-canonicalization
+    level: MUST
+    text: computeJkt builds the RFC 7638 canonical JWK by dropping the private and
+      non-required members d, kid, alg, key_ops, ext and use, sorting the remaining
+      public members by key name, and serializing them with JSON.stringify without
+      whitespace.
+    codeRefs:
+    - file:lib/common/oauth-server-common/mod.ts
+    - function:693ae22c42b1d574a4b56af51d12c703
+  - id: r.compute-jkt-thumbprint
+    level: MUST
+    text: computeJkt UTF-8 encodes that canonical JSON, digests it with SHA-256 via
+      crypto.subtle.digest, and returns the digest run through b64url, giving the
+      b64url-encoded JWK thumbprint.
+    codeRefs:
+    - function:5810e31edf2e6e95afc34833da48dc86
+    - function:693ae22c42b1d574a4b56af51d12c703
+  - id: r.generate-dpop-nonce
+    level: MUST
+    text: generateDpopNonce returns a fresh nonce by delegating to crypto.randomUUID,
+      so each call yields a distinct UUID string usable as a DPoP nonce.
+    codeRefs:
+    - file:lib/common/oauth-server-common/mod.ts
+    - function:da455fe1f77703d9b1b570ac018ae475
+  - id: r.session-data-shape
+    level: MUST
+    text: OAuthSessionData carries the persisted OAuth session as required string
+      fields accessJwt, refreshJwt, userDid, handle and pds alongside dpopPublicJwk
+      and dpopPrivateJwk typed as Record<string, string> JWK objects, so consumers
+      can reconstruct the DPoP key pair and reuse the tokens.
+    codeRefs:
+    - file:lib/common/oauth-server-common/mod.ts
+    - interface:3ea5feb96bfcd60114c5b7bb013568cb
+  - id: r.shared-common-layer
+    level: SHOULD
+    text: Because the helpers live in lib/common/oauth-server-common, the OAuth server
+      implementation imports them (b64url and computeJkt are called from lib/atproto-oauth-server-deno/mod.ts)
+      instead of redefining its own encoding or thumbprint code.
+    codeRefs:
+    - file:lib/common/oauth-server-common/mod.ts
+  interfaces:
+  - name: OAuthSessionData
+    kind: interface
+    signature: 'export interface OAuthSessionData { accessJwt: string; refreshJwt:
+      string; userDid: string; handle: string; pds: string; dpopPublicJwk: Record<string,
+      string>; dpopPrivateJwk: Record<string, string> }'
+    file: lib/common/oauth-server-common/mod.ts
+  - name: b64url
+    kind: function
+    signature: 'export function b64url(bytes: Uint8Array): string'
+    file: lib/common/oauth-server-common/mod.ts
+  - name: computeJkt
+    kind: function
+    signature: 'export async function computeJkt(jwk: Record<string, string>): Promise<string>'
+    file: lib/common/oauth-server-common/mod.ts
+  - name: generateDpopNonce
+    kind: function
+    signature: 'export function generateDpopNonce(): string'
+    file: lib/common/oauth-server-common/mod.ts
 codeRefIndex:
 - file:lib/common/oauth-server-common/mod.ts mod.ts@lib/common/oauth-server-common/mod.ts
+- function:5810e31edf2e6e95afc34833da48dc86 b64url@lib/common/oauth-server-common/mod.ts:17
+- function:693ae22c42b1d574a4b56af51d12c703 computeJkt@lib/common/oauth-server-common/mod.ts:23
+- function:da455fe1f77703d9b1b570ac018ae475 generateDpopNonce@lib/common/oauth-server-common/mod.ts:13
+- interface:3ea5feb96bfcd60114c5b7bb013568cb OAuthSessionData@lib/common/oauth-server-common/mod.ts:38
