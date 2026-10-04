@@ -1,0 +1,28 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SpecChange
+metadata:
+  name: lib-hono-factory-atproto-repo-deno-lexicons-c2s-fa8920306bc4-fa8920306bc4-a2
+  namespace: default
+spec:
+  systemContext: lib-hono-factory-atproto-repo-deno-lexicons
+  direction: CodeToSpec
+  fromCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
+  toCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
+status:
+  phase: Succeeded
+  agentLog: lib/hono-factory-atproto-repo-deno/lexicons/index.ts is the lexicon registry
+    for the Deno atproto repo factory. It declares the LexiconSchema interface (lexicon
+    literal 1, id string, defs Record<string, unknown>), imports twelve com.atproto
+    lexicon documents from JSON files stored under the same directory tree at paths
+    mirroring each NSID's dot-separated segments, and stores them in a module-private
+    `lexicons` record keyed by NSID, each value cast to LexiconSchema. The single
+    exported accessor, getLexicon(nsid), returns the matching LexiconSchema or undefined
+    for an unknown NSID, and the interface itself is exported so the factory layer
+    (mod.ts) can read and validate against the raw stored schemas without embedding
+    copies.
+  message: wrote 5 requirement(s) and 2 interface(s) for lib-hono-factory-atproto-repo-deno-lexicons;
+    the spec already said this
+superseded:
+- name: lib-hono-factory-atproto-repo-deno-lexicons-c2s-fa8920306bc4-fa8920306bc4
+  phase: Succeeded
+  message: wrote 5 requirement(s) and 2 interface(s) for lib-hono-factory-atproto-repo-deno-lexicons
