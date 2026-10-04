@@ -2,7 +2,7 @@
 
 Repository: `hono-pds`
 
-_(empty: write what this context is for)_
+This context exists so a Deno host process can stand up a self-contained AT Protocol PDS over Hono from a small set of injected contracts (Storage, Signer, Did, Sequencer): the factory owns route registration, identity documents, authentication, and the credential-minting endpoints, while the sequencer and subscribe layers own the firehose event stream that relays and watchers consume. It keeps transport concerns (HTTP, auth, well-known) separate from the ABC-layer repo/account contracts so tests and alternative hosts can substitute implementations.
 
 _The resolved code references are regenerated on every run. Cite the ids above rather than writing them here._
 

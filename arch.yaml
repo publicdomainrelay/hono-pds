@@ -396,13 +396,63 @@ system_contexts:
   upstream: self
   depends_on:
   - sc.hono-pds
+  requirements:
+  - id: r.account-creation
+    level: MUST
+  - id: r.admin-auth
+    level: MUST
+  - id: r.factory-options-contract
+    level: MUST
+  - id: r.factory-result-shape
+    level: MUST
+  - id: r.identity-document
+    level: MUST
+  - id: r.issuer-resolution
+    level: MUST
+  - id: r.module-exports
+    level: MUST
+  - id: r.readonly-guard
+    level: SHOULD
+  - id: r.repo-routes
+    level: MUST
+  - id: r.request-auth
+    level: MUST
+  - id: r.sequencer-frames
+    level: MUST
+  - id: r.sequencer-streams
+    level: MUST
+  - id: r.service-auth-handler
+    level: MUST
+  - id: r.session-routes
+    level: MUST
+  - id: r.subscribe-handler
+    level: MUST
+  - id: r.sync-routes
+    level: MUST
   codeRefIndex:
+  - class:0358cb2ffa8565f9d4cf74dee43f2c2e FirehoseSequencer@lib/hono-factory-atproto-repo-deno/sequencer.ts:10
   - file:lib/hono-factory-atproto-repo-deno/factory.ts factory.ts@lib/hono-factory-atproto-repo-deno/factory.ts
   - file:lib/hono-factory-atproto-repo-deno/mod.ts mod.ts@lib/hono-factory-atproto-repo-deno/mod.ts
   - file:lib/hono-factory-atproto-repo-deno/repo-handlers.ts repo-handlers.ts@lib/hono-factory-atproto-repo-deno/repo-handlers.ts
   - file:lib/hono-factory-atproto-repo-deno/sequencer.ts sequencer.ts@lib/hono-factory-atproto-repo-deno/sequencer.ts
   - file:lib/hono-factory-atproto-repo-deno/subscribe.ts subscribe.ts@lib/hono-factory-atproto-repo-deno/subscribe.ts
   - file:lib/hono-factory-atproto-repo-deno/sync-handlers.ts sync-handlers.ts@lib/hono-factory-atproto-repo-deno/sync-handlers.ts
+  - function:12cc6ce1cb747a3667f3a8ef2fadfdf7 requireAdminAuth@lib/hono-factory-atproto-repo-deno/factory.ts:229
+  - function:3b92f5560561f352bf01db889ca378c8 createRepoFactory@lib/hono-factory-atproto-repo-deno/factory.ts:153
+  - function:4a6197b7bae76874106795909fed1a5b handleGetServiceAuth@lib/hono-factory-atproto-repo-deno/factory.ts:471
+  - function:74a83283e66ddd78814ad23ab8491bf1 resolveIssuer@lib/hono-factory-atproto-repo-deno/factory.ts:559
+  - function:9bc40adeddb1771c452af7d31ee99b7f createSubscribeHandler@lib/hono-factory-atproto-repo-deno/subscribe.ts:4
+  - function:9f323ef8cfc4c2aec3f2c6d52a43cb4a mountRepoRoutes@lib/hono-factory-atproto-repo-deno/repo-handlers.ts:33
+  - function:e468b70406135c44ce7c00717ba47aef requireAuth@lib/hono-factory-atproto-repo-deno/factory.ts:247
+  - function:e74f80ecb4ebb358a2c874afb7ab378e mountSyncRoutes@lib/hono-factory-atproto-repo-deno/sync-handlers.ts:12
+  - interface:07662ba591afb7adbc3f084fcfd2254c RepoFactoryOptions@lib/hono-factory-atproto-repo-deno/factory.ts:38
+  - interface:14e3099fa1f0a95707a0951a37fbd296 SyncHandlerOptions@lib/hono-factory-atproto-repo-deno/sync-handlers.ts:7
+  - interface:7f38a4622a122cde3aedc658c6d7f484 RepoFactory@lib/hono-factory-atproto-repo-deno/factory.ts:84
+  - method:1304b3d01823f926c35cddd0cf3f6f04 FirehoseSequencer.appendIdentity@lib/hono-factory-atproto-repo-deno/sequencer.ts:43
+  - method:2ec31de8f5799aa6438da1681f2fe590 FirehoseSequencer.backfill@lib/hono-factory-atproto-repo-deno/sequencer.ts:72
+  - method:62ec1d7d3af726f14822c8c5c63f7fa2 FirehoseSequencer.append@lib/hono-factory-atproto-repo-deno/sequencer.ts:15
+  - method:c6c8e631b702ca84ae0260ef580265f1 FirehoseSequencer.appendAccount@lib/hono-factory-atproto-repo-deno/sequencer.ts:57
+  - method:ee74976464b4798bd9ede8cd366cf125 FirehoseSequencer.live@lib/hono-factory-atproto-repo-deno/sequencer.ts:81
 - id: sc.lib-hono-factory-atproto-repo-deno-lexicons
   name: lib-hono-factory-atproto-repo-deno-lexicons
   spec: specs/lib-hono-factory-atproto-repo-deno-lexicons.yaml

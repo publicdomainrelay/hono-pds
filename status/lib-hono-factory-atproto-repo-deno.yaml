@@ -1,14 +1,11 @@
 syncedFingerprint: b3b0f7aab810d7bf8908900e2c6dccffc53e37b9069410b15e700085c64d3170
-realizedSpecHash: 9e1c3cd99db9a41d586891cdf313ffb7cb3e1d153aacb1941dab46c3411da642
+realizedSpecHash: b9348d5ae7b7971093b0991c17f16c2f912285c1d2f3a63dae1937e39c61a065
 conditions:
 - type: CodeSynced
-  status: "False"
-  reason: InterfacesMissing
-  message: 'undeclared: FirehoseSequencer, FirehoseSequencer.append, FirehoseSequencer.appendAccount,
-    FirehoseSequencer.appendIdentity, FirehoseSequencer.backfill, FirehoseSequencer.live,
-    RepoFactory, RepoFactoryOptions, SyncHandlerOptions, createRepoFactory, createSubscribeHandler,
-    handleGetServiceAuth, mountRepoRoutes, mountSyncRoutes, requireAdminAuth, requireAuth,
-    resolveIssuer'
+  status: "True"
+  reason: InterfacesObserved
+  message: every declared interface is observed, nothing undeclared is exported and
+    every requirement code ref resolves
 - type: Drifted
   status: "False"
   reason: FingerprintEqual
