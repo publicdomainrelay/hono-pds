@@ -1,11 +1,11 @@
-syncedFingerprint: b3b0f7aab810d7bf8908900e2c6dccffc53e37b9069410b15e700085c64d3170
-realizedSpecHash: b9348d5ae7b7971093b0991c17f16c2f912285c1d2f3a63dae1937e39c61a065
+syncedCommit: e756842ffe022ad5e8a5b8b5f127756d1ca085ad
+syncedFingerprint: 35521783874eef0ca34df6ff644b86e937db6bd750655d1c3d43c18ece6ee327
+realizedSpecHash: b724f0481b46889418e55037dc710e32cebe8a87572016ed6af353bd6ad771e5
 conditions:
 - type: CodeSynced
-  status: "True"
-  reason: InterfacesObserved
-  message: every declared interface is observed, nothing undeclared is exported and
-    every requirement code ref resolves
+  status: "False"
+  reason: InterfacesMissing
+  message: 'undeclared: announceToCrawlers, crawlerBackoffMs'
 - type: Drifted
   status: "False"
   reason: FingerprintEqual
@@ -63,12 +63,24 @@ observed:
     file: lib/hono-factory-atproto-repo-deno/factory.ts
     line: 471
     codegraphId: function:4a6197b7bae76874106795909fed1a5b
+  - name: crawlerBackoffMs
+    kind: function
+    signature: '(attempts: number): number'
+    file: lib/hono-factory-atproto-repo-deno/factory.ts
+    line: 528
+    codegraphId: function:5c4731ff289f35b0deb87b801c53c373
+  - name: announceToCrawlers
+    kind: function
+    signature: '(): void'
+    file: lib/hono-factory-atproto-repo-deno/factory.ts
+    line: 532
+    codegraphId: function:2241cea9773c544c0d9f298a844e19dc
   - name: resolveIssuer
     kind: function
     signature: '(c: { req: { header: (n: string) => string | undefined } }): string'
     file: lib/hono-factory-atproto-repo-deno/factory.ts
-    line: 559
-    codegraphId: function:74a83283e66ddd78814ad23ab8491bf1
+    line: 601
+    codegraphId: function:b332716788d72d25b8309abe26fdfe9a
   - name: mountRepoRoutes
     kind: function
     signature: '(app: Hono, repo: RepoApi): void'
@@ -127,4 +139,4 @@ observed:
     file: lib/hono-factory-atproto-repo-deno/sync-handlers.ts
     line: 12
     codegraphId: function:e74f80ecb4ebb358a2c874afb7ab378e
-  fingerprint: b3b0f7aab810d7bf8908900e2c6dccffc53e37b9069410b15e700085c64d3170
+  fingerprint: 35521783874eef0ca34df6ff644b86e937db6bd750655d1c3d43c18ece6ee327

@@ -85,7 +85,7 @@ spec:
     text: resolveIssuer must derive the requesting issuer from the request headers,
       returning a string usable to attribute the caller.
     codeRefs:
-    - function:74a83283e66ddd78814ad23ab8491bf1
+    - function:b332716788d72d25b8309abe26fdfe9a
   - id: r.module-exports
     level: MUST
     text: mod.ts must re-export the factory surface so consumers import the module
@@ -145,7 +145,7 @@ spec:
       signer, and use the optional lxm and exp query parameters when minting the token.
     codeRefs:
     - function:4a6197b7bae76874106795909fed1a5b
-    - function:74a83283e66ddd78814ad23ab8491bf1
+    - function:b332716788d72d25b8309abe26fdfe9a
   - id: r.session-routes
     level: MUST
     text: createSession must require identifier and password (400 InvalidRequest when
@@ -264,9 +264,9 @@ codeRefIndex:
 - function:12cc6ce1cb747a3667f3a8ef2fadfdf7 requireAdminAuth@lib/hono-factory-atproto-repo-deno/factory.ts:229
 - function:3b92f5560561f352bf01db889ca378c8 createRepoFactory@lib/hono-factory-atproto-repo-deno/factory.ts:153
 - function:4a6197b7bae76874106795909fed1a5b handleGetServiceAuth@lib/hono-factory-atproto-repo-deno/factory.ts:471
-- function:74a83283e66ddd78814ad23ab8491bf1 resolveIssuer@lib/hono-factory-atproto-repo-deno/factory.ts:559
 - function:9bc40adeddb1771c452af7d31ee99b7f createSubscribeHandler@lib/hono-factory-atproto-repo-deno/subscribe.ts:4
 - function:9f323ef8cfc4c2aec3f2c6d52a43cb4a mountRepoRoutes@lib/hono-factory-atproto-repo-deno/repo-handlers.ts:33
+- function:b332716788d72d25b8309abe26fdfe9a resolveIssuer@lib/hono-factory-atproto-repo-deno/factory.ts:601
 - function:e468b70406135c44ce7c00717ba47aef requireAuth@lib/hono-factory-atproto-repo-deno/factory.ts:247
 - function:e74f80ecb4ebb358a2c874afb7ab378e mountSyncRoutes@lib/hono-factory-atproto-repo-deno/sync-handlers.ts:12
 - interface:07662ba591afb7adbc3f084fcfd2254c RepoFactoryOptions@lib/hono-factory-atproto-repo-deno/factory.ts:38

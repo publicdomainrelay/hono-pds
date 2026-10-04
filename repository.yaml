@@ -15,10 +15,9 @@ spec:
     summarize: true
     root: true
 status:
-  headCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
-  indexedCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
-  observedCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
-  syncedCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
+  headCommit: e756842ffe022ad5e8a5b8b5f127756d1ca085ad
+  indexedCommit: e756842ffe022ad5e8a5b8b5f127756d1ca085ad
+  observedCommit: e756842ffe022ad5e8a5b8b5f127756d1ca085ad
   phase: Populated
   contexts:
     total: 16
