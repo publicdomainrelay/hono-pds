@@ -15,4 +15,5 @@ spec:
     requirements:
     - +r.e2e-crawler-announce-retries-until-2xx
 status:
-  phase: Pending
+  phase: Running
+  message: the agent is realizing test-hono-factory in a batch of 2 led by lib-hono-factory-atproto-repo-deno
