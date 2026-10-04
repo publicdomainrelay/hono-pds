@@ -2,7 +2,7 @@
 
 Repository: `hono-pds`
 
-_(empty: write what this context is for)_
+This context covers the wiring layer that turns process-level options into a running PDS instance in hono-pds: it owns keypair import or generation, Deno KV storage creation, parsing and normalisation of the did-web-services JSON and crawler list, and the createRepoFactory call that assembles the repository factory. It exists so the configuration surface (CreateFromEnvOptions) and the server lifecycle (StartOptions / StartResult, the start helper) can be exercised directly in tests and embedded by other launchers such as the worker-launcher script, without going through a CLI flag parser.
 
 _The resolved code references are regenerated on every run. Cite the ids above rather than writing them here._
 

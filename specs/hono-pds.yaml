@@ -6,5 +6,110 @@ metadata:
 spec:
   repository: hono-pds
   upstream: self
+  intent: 'This context covers the wiring layer that turns process-level options into
+    a running PDS instance in hono-pds: it owns keypair import or generation, Deno
+    KV storage creation, parsing and normalisation of the did-web-services JSON and
+    crawler list, and the createRepoFactory call that assembles the repository factory.
+    It exists so the configuration surface (CreateFromEnvOptions) and the server lifecycle
+    (StartOptions / StartResult, the start helper) can be exercised directly in tests
+    and embedded by other launchers such as the worker-launcher script, without going
+    through a CLI flag parser.'
+  requirements:
+  - id: r.crawlers-normalised
+    level: MUST
+    text: createFromEnv must derive the crawlers value from opts.crawlersStr by splitting
+      on commas, trimming each entry, dropping empty entries and de-duplicating the
+      remainder, and must pass undefined when the option is absent.
+    codeRefs:
+    - file:main.ts
+    - function:6d4615056e267ea626ccfe4721e8c7e9
+  - id: r.default-logger
+    level: SHOULD
+    text: createFromEnv and start must use opts.log when supplied and otherwise fall
+      back to the module-level defaultLog, so logging is never undefined at the call
+      sites.
+    codeRefs:
+    - file:main.ts
+    - function:6d4615056e267ea626ccfe4721e8c7e9
+    - function:801fee3a6255e197b1fd30a72241ed54
+  - id: r.did-web-services-parse
+    level: MUST
+    text: createFromEnv must JSON-parse opts.didWebServicesStr into the didWebServices
+      array when the string is present, and on a parse failure must log a warn that
+      the JSON was ignored and leave the array empty rather than throwing.
+    codeRefs:
+    - file:main.ts
+    - function:6d4615056e267ea626ccfe4721e8c7e9
+  - id: r.factory-wiring
+    level: MUST
+    text: createFromEnv must build the RepoFactory via createRepoFactory with Deno
+      KV storage, the signer produced from the keypair, publicKeyDid set to the signer
+      DID, publicHostname from opts, the normalised crawlers, didWebServices only
+      when the parsed list is non-empty, and an enabled OAuth server whose issuer
+      is http://127.0.0.1:2583.
+    codeRefs:
+    - file:main.ts
+    - function:6d4615056e267ea626ccfe4721e8c7e9
+  - id: r.keypair-import-or-generate
+    level: MUST
+    text: createFromEnv must import a Secp256k1 keypair from opts.keyHex when it is
+      set, and otherwise create a fresh keypair and emit a warn-level log entry carrying
+      the generated DID before continuing.
+    codeRefs:
+    - file:main.ts
+    - function:6d4615056e267ea626ccfe4721e8c7e9
+    - interface:9e33edf403a8421c9005065417701a8b
+  - id: r.start-options-superset
+    level: MUST
+    text: StartOptions must carry the required port and hostname for the HTTP bind
+      plus the optional keyHex, didWebServicesStr, publicHostname, crawlersStr and
+      log fields, and must be accepted directly as the CreateFromEnvOptions argument
+      to createFromEnv.
+    codeRefs:
+    - file:main.ts
+    - function:801fee3a6255e197b1fd30a72241ed54
+    - interface:9e33edf403a8421c9005065417701a8b
+    - interface:aa5b00cd4b1a22b790ac1a9fd4dbebcb
+  - id: r.start-serves-app
+    level: MUST
+    text: start must create the repo through createFromEnv with the StartOptions,
+      serve repo.app.fetch with Deno.serve bound to options.port and options.hostname,
+      log an info entry with the port in the onListen callback, and return a StartResult
+      carrying app, server, repo and port.
+    codeRefs:
+    - file:main.ts
+    - function:801fee3a6255e197b1fd30a72241ed54
+    - interface:320a7c33d923f7e0048407e6a52e340d
+    - interface:aa5b00cd4b1a22b790ac1a9fd4dbebcb
+  interfaces:
+  - name: CreateFromEnvOptions
+    kind: interface
+    signature: 'interface CreateFromEnvOptions { keyHex?: string; didWebServicesStr?:
+      string; publicHostname?: string; crawlersStr?: string; log?: Logger }'
+    file: main.ts
+  - name: StartOptions
+    kind: interface
+    signature: 'interface StartOptions { port: number; hostname: string; keyHex?:
+      string; didWebServicesStr?: string; publicHostname?: string; crawlersStr?: string;
+      log?: Logger }'
+    file: main.ts
+  - name: StartResult
+    kind: interface
+    signature: 'interface StartResult { app: RepoFactory["app"]; server: Deno.HttpServer;
+      repo: RepoFactory; port: number }'
+    file: main.ts
+  - name: createFromEnv
+    kind: function
+    signature: 'createFromEnv(opts?: CreateFromEnvOptions): Promise<RepoFactory>'
+    file: main.ts
+  - name: start
+    kind: function
+    signature: 'start(options: StartOptions): Promise<StartResult>'
+    file: main.ts
 codeRefIndex:
 - file:main.ts main.ts@main.ts
+- function:6d4615056e267ea626ccfe4721e8c7e9 createFromEnv@main.ts:20
+- function:801fee3a6255e197b1fd30a72241ed54 start@main.ts:78
+- interface:320a7c33d923f7e0048407e6a52e340d StartResult@main.ts:61
+- interface:9e33edf403a8421c9005065417701a8b CreateFromEnvOptions@main.ts:12
+- interface:aa5b00cd4b1a22b790ac1a9fd4dbebcb StartOptions@main.ts:68

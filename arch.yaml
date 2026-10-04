@@ -8,8 +8,28 @@ system_contexts:
   name: hono-pds
   spec: specs/hono-pds.yaml
   upstream: self
+  requirements:
+  - id: r.crawlers-normalised
+    level: MUST
+  - id: r.default-logger
+    level: SHOULD
+  - id: r.did-web-services-parse
+    level: MUST
+  - id: r.factory-wiring
+    level: MUST
+  - id: r.keypair-import-or-generate
+    level: MUST
+  - id: r.start-options-superset
+    level: MUST
+  - id: r.start-serves-app
+    level: MUST
   codeRefIndex:
   - file:main.ts main.ts@main.ts
+  - function:6d4615056e267ea626ccfe4721e8c7e9 createFromEnv@main.ts:20
+  - function:801fee3a6255e197b1fd30a72241ed54 start@main.ts:78
+  - interface:320a7c33d923f7e0048407e6a52e340d StartResult@main.ts:61
+  - interface:9e33edf403a8421c9005065417701a8b CreateFromEnvOptions@main.ts:12
+  - interface:aa5b00cd4b1a22b790ac1a9fd4dbebcb StartOptions@main.ts:68
 - id: sc.lib-abc-atproto-oauth-server
   name: lib-abc-atproto-oauth-server
   spec: specs/lib-abc-atproto-oauth-server.yaml

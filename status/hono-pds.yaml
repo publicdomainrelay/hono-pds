@@ -1,11 +1,11 @@
 syncedFingerprint: e202da8e015cbf5a94d829c26021ecf3dcc73d9e0a18f8bb1c738019220cdd4e
-realizedSpecHash: a7d9c0cdb98ef56b1d0ec18f8eb8dc1b3fa53ef2c3bb97929b3c92c356555f3a
+realizedSpecHash: f92679478963099fafe1a0b7bede7b034a9bd07d9ea34ea005ff142567f50add
 conditions:
 - type: CodeSynced
-  status: "False"
-  reason: InterfacesMissing
-  message: 'undeclared: CreateFromEnvOptions, StartOptions, StartResult, createFromEnv,
-    start'
+  status: "True"
+  reason: InterfacesObserved
+  message: every declared interface is observed, nothing undeclared is exported and
+    every requirement code ref resolves
 - type: Drifted
   status: "False"
   reason: FingerprintEqual
