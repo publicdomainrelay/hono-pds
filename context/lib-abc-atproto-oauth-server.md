@@ -2,7 +2,7 @@
 
 Repository: `hono-pds`
 
-_(empty: write what this context is for)_
+This context exists to fix the shape of OAuth server state handling without committing to any transport or storage mechanism. By declaring IssueTokenParams, IssueTokenResult, TokenValidation, TokenStore, InjectedSession, SessionInjector, DpopProofValidation, DpopVerifier, and DpopNonceStore as pure interfaces with no imports of fetch, crypto, timers, or Deno APIs, it lets concrete impl packages (such as lib/atproto-oauth-server-deno) be swapped in behind a stable contract. It is the dependency boundary that the rest of the OAuth server code compiles against, and it carries the DPoP binding requirement: tokens are tied to a client key thumbprint (jkt) at issue time and re-checked at validation and proof-verification time.
 
 _The resolved code references are regenerated on every run. Cite the ids above rather than writing them here._
 

@@ -1,11 +1,11 @@
 syncedFingerprint: 20c2ac3053341611c2fd20e1ad967fd58d3ae5e3fa7a971dcf91eec88cdc24bc
-realizedSpecHash: 3b1695c483cc3533dce806393a66d8307de9a72e290ceb8fe01719621e61e1a1
+realizedSpecHash: 642aaaaf0ecef2763e967610dc33c66b4703df7b8f89df17a533e36da06d6698
 conditions:
 - type: CodeSynced
-  status: "False"
-  reason: InterfacesMissing
-  message: 'undeclared: DpopNonceStore, DpopProofValidation, DpopVerifier, InjectedSession,
-    IssueTokenParams, IssueTokenResult, SessionInjector, TokenStore, TokenValidation'
+  status: "True"
+  reason: InterfacesObserved
+  message: every declared interface is observed, nothing undeclared is exported and
+    every requirement code ref resolves
 - type: Drifted
   status: "False"
   reason: FingerprintEqual

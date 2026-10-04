@@ -8,5 +8,145 @@ spec:
   upstream: self
   dependsOn:
   - sc.hono-pds
+  intent: 'This context exists to fix the shape of OAuth server state handling without
+    committing to any transport or storage mechanism. By declaring IssueTokenParams,
+    IssueTokenResult, TokenValidation, TokenStore, InjectedSession, SessionInjector,
+    DpopProofValidation, DpopVerifier, and DpopNonceStore as pure interfaces with
+    no imports of fetch, crypto, timers, or Deno APIs, it lets concrete impl packages
+    (such as lib/atproto-oauth-server-deno) be swapped in behind a stable contract.
+    It is the dependency boundary that the rest of the OAuth server code compiles
+    against, and it carries the DPoP binding requirement: tokens are tied to a client
+    key thumbprint (jkt) at issue time and re-checked at validation and proof-verification
+    time.'
+  requirements:
+  - id: r.dpop-nonce-issue-verify
+    level: MUST
+    text: DpopNonceStore issues a nonce for an origin and verifies a supplied nonce
+      against that origin, resolving the verification to a boolean so callers can
+      reject replayed or foreign-origin proofs.
+    codeRefs:
+    - interface:00577634a76e8053cea00d61bd25f3e6
+  - id: r.dpop-verify-proof
+    level: MUST
+    text: DpopVerifier.verifyProof takes the serialized proof, the HTTP method, the
+      request URL, and an optional access token, and resolves to a DpopProofValidation
+      stating the jkt and jti, or to null when the proof does not verify.
+    codeRefs:
+    - interface:b3e92b89ae7b3ded9f267f19f6987bd7
+    - interface:bfc3ab9d8e8b884452e3a13fa93660e3
+  - id: r.inject-session
+    level: MUST
+    text: SessionInjector.injectSession takes a user DID, handle, and optional scope,
+      and resolves to an InjectedSession pairing the OAuthSessionData with the CryptoKeyPair
+      used for DPoP.
+    codeRefs:
+    - interface:af5476d79846d9238b5d534bb65f4679
+    - interface:ca9108dd009b23077685de072292e062
+  - id: r.injected-session-shape
+    level: MUST
+    text: InjectedSession holds the session data typed as OAuthSessionData alongside
+      the DPoP CryptoKeyPair, so the caller can both persist the session and sign
+      subsequent DPoP proofs with the same key.
+    codeRefs:
+    - interface:ca9108dd009b23077685de072292e062
+  - id: r.issue-token-params-binding
+    level: MUST
+    text: IssueTokenParams carries the user DID, handle, an optional scope, and a
+      required jkt — the SHA-256 thumbprint of the client DPoP public key — so an
+      issued token is bound to one specific client DPoP key.
+    codeRefs:
+    - file:lib/abc/atproto-oauth-server/mod.ts
+    - interface:f37628b299fefaaf4b392c93a553db64
+  - id: r.pure-interfaces-no-io
+    level: MUST
+    text: The module declares only pure interfaces and must import no I/O or runtime
+      primitives — no fetch, no crypto, no timers, no Deno.* — so any implementation
+      package can satisfy the contracts.
+    codeRefs:
+    - file:lib/abc/atproto-oauth-server/mod.ts
+  - id: r.token-store-issue
+    level: MUST
+    text: TokenStore.issue accepts IssueTokenParams and resolves to an IssueTokenResult
+      containing the access token, refresh token, and expiry in seconds.
+    codeRefs:
+    - interface:1e552af5f7e4ab4f902c562717253aba
+    - interface:f40625201a62963b12843dc8cb6b49d1
+  - id: r.token-store-refresh
+    level: MUST
+    text: TokenStore.refresh takes a refresh token and resolves to a fresh IssueTokenResult,
+      or to null when the refresh token is unknown or unusable.
+    codeRefs:
+    - interface:1e552af5f7e4ab4f902c562717253aba
+    - interface:f40625201a62963b12843dc8cb6b49d1
+  - id: r.token-store-revoke
+    level: MUST
+    text: TokenStore.revoke takes a token and resolves to void, invalidating it without
+      reporting a result.
+    codeRefs:
+    - interface:f40625201a62963b12843dc8cb6b49d1
+  - id: r.token-store-validate
+    level: MUST
+    text: TokenStore.validate takes an access token and resolves either to a TokenValidation
+      exposing sub, optional handle, scope, and jkt, or to null when the token is
+      not valid, rather than throwing.
+    codeRefs:
+    - interface:c887febac8a2b13e2eeeb7a955adf144
+    - interface:f40625201a62963b12843dc8cb6b49d1
+  interfaces:
+  - name: DpopNonceStore
+    kind: interface
+    signature: 'interface DpopNonceStore { issue(origin: string): Promise<string>;
+      verify(origin: string, nonce: string): Promise<boolean> }'
+    file: lib/abc/atproto-oauth-server/mod.ts
+  - name: DpopProofValidation
+    kind: interface
+    signature: 'interface DpopProofValidation { jkt: string; jti: string }'
+    file: lib/abc/atproto-oauth-server/mod.ts
+  - name: DpopVerifier
+    kind: interface
+    signature: 'interface DpopVerifier { verifyProof(proof: string, method: string,
+      url: string, accessToken?: string): Promise<DpopProofValidation | null> }'
+    file: lib/abc/atproto-oauth-server/mod.ts
+  - name: InjectedSession
+    kind: interface
+    signature: 'interface InjectedSession { sessionData: OAuthSessionData; dpopKeyPair:
+      CryptoKeyPair }'
+    file: lib/abc/atproto-oauth-server/mod.ts
+  - name: IssueTokenParams
+    kind: interface
+    signature: 'interface IssueTokenParams { userDid: string; handle: string; scope?:
+      string; jkt: string }'
+    file: lib/abc/atproto-oauth-server/mod.ts
+  - name: IssueTokenResult
+    kind: interface
+    signature: 'interface IssueTokenResult { accessToken: string; refreshToken: string;
+      expiresIn: number }'
+    file: lib/abc/atproto-oauth-server/mod.ts
+  - name: SessionInjector
+    kind: interface
+    signature: 'interface SessionInjector { injectSession(opts: { userDid: string;
+      handle: string; scope?: string }): Promise<InjectedSession> }'
+    file: lib/abc/atproto-oauth-server/mod.ts
+  - name: TokenStore
+    kind: interface
+    signature: 'interface TokenStore { issue(params: IssueTokenParams): Promise<IssueTokenResult>;
+      validate(accessToken: string): Promise<TokenValidation | null>; refresh(refreshToken:
+      string): Promise<IssueTokenResult | null>; revoke(token: string): Promise<void>
+      }'
+    file: lib/abc/atproto-oauth-server/mod.ts
+  - name: TokenValidation
+    kind: interface
+    signature: 'interface TokenValidation { sub: string; handle?: string; scope: string;
+      jkt: string }'
+    file: lib/abc/atproto-oauth-server/mod.ts
 codeRefIndex:
 - file:lib/abc/atproto-oauth-server/mod.ts mod.ts@lib/abc/atproto-oauth-server/mod.ts
+- interface:00577634a76e8053cea00d61bd25f3e6 DpopNonceStore@lib/abc/atproto-oauth-server/mod.ts:70
+- interface:1e552af5f7e4ab4f902c562717253aba IssueTokenResult@lib/abc/atproto-oauth-server/mod.ts:17
+- interface:af5476d79846d9238b5d534bb65f4679 SessionInjector@lib/abc/atproto-oauth-server/mod.ts:44
+- interface:b3e92b89ae7b3ded9f267f19f6987bd7 DpopVerifier@lib/abc/atproto-oauth-server/mod.ts:59
+- interface:bfc3ab9d8e8b884452e3a13fa93660e3 DpopProofValidation@lib/abc/atproto-oauth-server/mod.ts:54
+- interface:c887febac8a2b13e2eeeb7a955adf144 TokenValidation@lib/abc/atproto-oauth-server/mod.ts:23
+- interface:ca9108dd009b23077685de072292e062 InjectedSession@lib/abc/atproto-oauth-server/mod.ts:39
+- interface:f37628b299fefaaf4b392c93a553db64 IssueTokenParams@lib/abc/atproto-oauth-server/mod.ts:8
+- interface:f40625201a62963b12843dc8cb6b49d1 TokenStore@lib/abc/atproto-oauth-server/mod.ts:30

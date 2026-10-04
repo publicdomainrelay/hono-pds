@@ -36,8 +36,38 @@ system_contexts:
   upstream: self
   depends_on:
   - sc.hono-pds
+  requirements:
+  - id: r.dpop-nonce-issue-verify
+    level: MUST
+  - id: r.dpop-verify-proof
+    level: MUST
+  - id: r.inject-session
+    level: MUST
+  - id: r.injected-session-shape
+    level: MUST
+  - id: r.issue-token-params-binding
+    level: MUST
+  - id: r.pure-interfaces-no-io
+    level: MUST
+  - id: r.token-store-issue
+    level: MUST
+  - id: r.token-store-refresh
+    level: MUST
+  - id: r.token-store-revoke
+    level: MUST
+  - id: r.token-store-validate
+    level: MUST
   codeRefIndex:
   - file:lib/abc/atproto-oauth-server/mod.ts mod.ts@lib/abc/atproto-oauth-server/mod.ts
+  - interface:00577634a76e8053cea00d61bd25f3e6 DpopNonceStore@lib/abc/atproto-oauth-server/mod.ts:70
+  - interface:1e552af5f7e4ab4f902c562717253aba IssueTokenResult@lib/abc/atproto-oauth-server/mod.ts:17
+  - interface:af5476d79846d9238b5d534bb65f4679 SessionInjector@lib/abc/atproto-oauth-server/mod.ts:44
+  - interface:b3e92b89ae7b3ded9f267f19f6987bd7 DpopVerifier@lib/abc/atproto-oauth-server/mod.ts:59
+  - interface:bfc3ab9d8e8b884452e3a13fa93660e3 DpopProofValidation@lib/abc/atproto-oauth-server/mod.ts:54
+  - interface:c887febac8a2b13e2eeeb7a955adf144 TokenValidation@lib/abc/atproto-oauth-server/mod.ts:23
+  - interface:ca9108dd009b23077685de072292e062 InjectedSession@lib/abc/atproto-oauth-server/mod.ts:39
+  - interface:f37628b299fefaaf4b392c93a553db64 IssueTokenParams@lib/abc/atproto-oauth-server/mod.ts:8
+  - interface:f40625201a62963b12843dc8cb6b49d1 TokenStore@lib/abc/atproto-oauth-server/mod.ts:30
 - id: sc.lib-abc-atproto-repo
   name: lib-abc-atproto-repo
   spec: specs/lib-abc-atproto-repo.yaml
