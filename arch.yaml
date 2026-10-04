@@ -401,6 +401,8 @@ system_contexts:
     level: MUST
   - id: r.admin-auth
     level: MUST
+  - id: r.crawler-announce-requires-a-2xx
+    level: MUST
   - id: r.factory-options-contract
     level: MUST
   - id: r.factory-result-shape
@@ -674,6 +676,8 @@ system_contexts:
   depends_on:
   - sc.hono-pds
   requirements:
+  - id: r.e2e-crawler-announce-retries-until-2xx
+    level: MUST
   - id: r.e2e-create-record-returns-uri-and-cid
     level: MUST
   - id: r.e2e-describe-repo-lists-collections

@@ -36,6 +36,20 @@ spec:
       otherwise call next().
     codeRefs:
     - function:12cc6ce1cb747a3667f3a8ef2fadfdf7
+  - id: r.crawler-announce-requires-a-2xx
+    level: MUST
+    text: When the factory is given crawlers and a public hostname, a write announces
+      the repo to each crawler with POST /xrpc/com.atproto.sync.requestCrawl. An announce
+      is complete only when the crawler answers 2xx. A non-2xx response, a network
+      error or a timeout leaves that crawler unannounced, and the factory announces
+      to it again on a later write -- with a bounded backoff between attempts, so
+      a crawler that is down is retried, not hammered, and never given up on for the
+      life of the process. A crawler that has answered 2xx is announced once and not
+      again, because the firehose carries the rest and a repeat announce makes a relay
+      reset its cursor. The announce never blocks the write that triggered it and
+      never fails it, and a failed announce never leaves an unhandled rejection.
+    codeRefs:
+    - file:lib/hono-factory-atproto-repo-deno/factory.ts
   - id: r.factory-options-contract
     level: MUST
     text: createRepoFactory must build a Repo over the injected storage, signer and

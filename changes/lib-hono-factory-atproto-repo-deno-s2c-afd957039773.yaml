@@ -1,0 +1,17 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SpecChange
+metadata:
+  name: lib-hono-factory-atproto-repo-deno-s2c-afd957039773
+  namespace: default
+spec:
+  systemContext: lib-hono-factory-atproto-repo-deno
+  direction: SpecToCode
+  fromSpecHash: b9348d5ae7b7971093b0991c17f16c2f912285c1d2f3a63dae1937e39c61a065
+  toSpecHash: afd957039773be7297e2893c648e0ce4c7a73a6c3ea1f588ff18b54f91ffc29c
+  delta:
+    counts:
+      added: 1
+    requirements:
+    - +r.crawler-announce-requires-a-2xx
+status:
+  phase: Pending

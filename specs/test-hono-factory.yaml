@@ -17,8 +17,22 @@ spec:
     same bytes a later getRecord or listRecords returns. It is the regression net
     for the factory''s public surface, including the fix that createRecord and putRecord
     no longer answer with the commit CID, and it is the place a change to factory
-    routing, auth, or CID reporting is expected to show up as a failing test.'
+    routing, auth, or CID reporting is expected to show up as a failing test. It also
+    covers the crawler announce, which is the one write side effect with a network
+    peer: a test here stands up a crawler that refuses, then accepts, and reads what
+    the factory sent.'
   requirements:
+  - id: r.e2e-crawler-announce-retries-until-2xx
+    level: MUST
+    text: A test configures a factory with a crawler whose listener answers 503 to
+      the first announce and 200 afterwards, performs two writes, and asserts the
+      listener saw two announces and that the second is the one that was accepted;
+      across further writes the accepted crawler is not announced again. A second
+      test with a listener that always answers 200 asserts exactly one announce across
+      several writes. The first test must fail against a factory that marks a crawler
+      announced before it answers 2xx.
+    codeRefs:
+    - file:test/hono-factory/e2e_test.ts
   - id: r.e2e-create-record-returns-uri-and-cid
     level: MUST
     text: Posting to /xrpc/com.atproto.repo.createRecord with a valid service-auth

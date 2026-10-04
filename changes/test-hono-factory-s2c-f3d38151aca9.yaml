@@ -1,0 +1,18 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SpecChange
+metadata:
+  name: test-hono-factory-s2c-f3d38151aca9
+  namespace: default
+spec:
+  systemContext: test-hono-factory
+  direction: SpecToCode
+  fromSpecHash: 62675820d7a9c6c1a754e81187b8721ca1ba6bac17add8000ef89f7f16c00acc
+  toSpecHash: f3d38151aca9c0e78127aa6175952ec82c8e23bac2f1b125b3f0e8830cb5e28d
+  delta:
+    counts:
+      added: 1
+      changed: 1
+    requirements:
+    - +r.e2e-crawler-announce-retries-until-2xx
+status:
+  phase: Pending
