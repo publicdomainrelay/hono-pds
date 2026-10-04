@@ -8,6 +8,132 @@ spec:
   upstream: self
   dependsOn:
   - sc.hono-pds
+  intent: 'This context exists to pin down the observable behaviour of the lowest-level
+    shared primitives — byte codecs, CIDs, CBOR codecs, TIDs — that every higher layer
+    of the PDS (repo blocks, MST nodes, record serialization, record keys) is built
+    on. It is the contract test for those primitives: any change to encoding, digest
+    handling, link representation or determinism that would break repo or wire compatibility
+    fails here first, and because the tests import the common package by name they
+    also guard the package''s public export list.'
+  requirements:
+  - id: r.bytes-codec-roundtrip
+    level: MUST
+    text: 'bytes_test.ts asserts round-trip fidelity for the byte codecs: hexEncode/hexDecode,
+      base64Encode/base64Decode, base32Encode/base32Decode and utf8Encode/utf8Decode
+      each decode back to the original input, with pinned literals for hexEncode(Uint8Array[0xde,0xad,0xbe,0xef])
+      === "deadbeef", base64Encode of the bytes of "hello" === "aGVsbG8=", utf8Encode("Hello,
+      World!") equal to its ASCII byte sequence, and utf8Encode("") equal to a zero-length
+      Uint8Array.'
+    codeRefs:
+    - file:test/common/bytes_test.ts
+  - id: r.bytes-helpers
+    level: MUST
+    text: concat joins its Uint8Array arguments in order into a single array ([1,2,3]
+      + [4,5] + [6] yields [1,2,3,4,5,6]), and bytesEqual returns true only for two
+      arrays of the same length with identical contents, returning false both for
+      differing bytes and for differing lengths.
+    codeRefs:
+    - file:test/common/bytes_test.ts
+  - id: r.bytes-hex-strictness
+    level: MUST
+    text: hexDecode accepts uppercase input ("DEADBEEF" decodes to the same bytes
+      as lowercase) and throws when given an odd-length string such as "abc".
+    codeRefs:
+    - file:test/common/bytes_test.ts
+  - id: r.cid-digest-and-equality
+    level: MUST
+    text: cidDigest extracts a digest that is byte-equal to the digest the CID was
+      built from, cidEquals reports two CIDs built from the same digest as equal,
+      and isValidCid accepts a generated CID while rejecting "binvalid" and the empty
+      string.
+    codeRefs:
+    - file:test/common/cid_test.ts
+  - id: r.cid-encoding-layout
+    level: MUST
+    text: cidFromDigest over a 32-byte SHA-256 digest returns a string beginning with
+      the multibase prefix "b" and 59 characters long, and cidToBytes of that CID
+      returns a 36-byte array whose leading bytes are the CIDv1 raw codec header 0x01
+      0x71 0x12 0x20.
+    codeRefs:
+    - file:test/common/cid_test.ts
+  - id: r.dag-cbor-cid-links
+    level: MUST
+    text: 'dag-cbor encodes CIDs as links: cidLink(cid) produces a value that isCidLink
+      recognises, survives an encode/decode cycle still recognised by isCidLink, and
+      cidFromLink of the decoded value returns the original CID.'
+    codeRefs:
+    - file:test/common/dag-cbor_test.ts
+  - id: r.dag-cbor-determinism
+    level: MUST
+    text: 'dag-cbor encoding is deterministic: maps built with different key insertion
+      orders ({z,a,m} vs {a,m,z}) encode to byte-identical output, and encoding the
+      same object twice produces identical bytes.'
+    codeRefs:
+    - file:test/common/dag-cbor_test.ts
+  - id: r.dag-cbor-value-roundtrip
+    level: MUST
+    text: 'dag-cbor encode/decode round-trips every supported JSON-adjacent value
+      type: positive integers, negative integers, zero, strings, byte arrays, nested
+      arrays, string-keyed maps, and null/true/false, each decoding to a value equal
+      to the original.'
+    codeRefs:
+    - file:test/common/dag-cbor_test.ts
+  - id: r.drisl-cbor-links-and-determinism
+    level: MUST
+    text: drislCidLink produces links recognised by isDrislCidLink, drislCidFromLink
+      recovers the original CID both directly and after a drislEncode/drislDecode
+      cycle, and drisl encoding of maps with differing key insertion order, or of
+      the same object twice, is byte-identical.
+    codeRefs:
+    - file:test/common/drisl_cbor_test.ts
+  - id: r.drisl-cbor-rejects-floats
+    level: MUST
+    text: drislEncode throws on a float input such as 3.14, and the thrown Error message
+      includes the text "floats not allowed".
+    codeRefs:
+    - file:test/common/drisl_cbor_test.ts
+  - id: r.drisl-cbor-value-roundtrip
+    level: MUST
+    text: 'drisl_cbor_test.ts repeats the full CBOR value coverage over the drisl
+      codec: drislEncode/drislDecode round-trips integers (positive, negative, zero),
+      strings, byte arrays, nested arrays, maps and null/true/false, with byte arrays
+      decoded as Uint8Array instances of the original length and contents.'
+    codeRefs:
+    - file:test/common/drisl_cbor_test.ts
+  - id: r.drisl-cid-shape
+    level: SHOULD
+    text: drisl_cbor_test.ts asserts that cidFromDigest over a SHA256_DIGEST_LEN digest
+      still yields a string starting with the multibase "b" prefix and 59 characters
+      long, matching the CID shape asserted in the dag-cbor suite.
+    codeRefs:
+    - file:test/common/drisl_cbor_test.ts
+  - id: r.imports-common-package
+    level: MUST
+    text: Every file in test/common imports its subject under test from the @publicdomainrelay/atproto-repo-common
+      package (bytes codecs and helpers, CID helpers, encode/decode/cidLink, drislEncode/drislDecode
+      and drisl link helpers plus SHA256_DIGEST_LEN, nextTid/parseTid/isValidTid/resetClockId)
+      rather than from repo-relative paths, and drives assertions with Deno.test and
+      @std/assert, so the suites fail if the package stops exporting any of those
+      symbols.
+    codeRefs:
+    - file:test/common/bytes_test.ts
+    - file:test/common/cid_test.ts
+    - file:test/common/dag-cbor_test.ts
+    - file:test/common/drisl_cbor_test.ts
+    - file:test/common/tid_test.ts
+  - id: r.tid-parse-and-validate
+    level: MUST
+    text: parseTid of a generated TID yields an object with numeric micros and numeric
+      clockId fields, and isValidTid accepts a generated TID while rejecting both
+      the empty string and a too-short string such as "short".
+    codeRefs:
+    - file:test/common/tid_test.ts
+  - id: r.tid-shape-and-ordering
+    level: MUST
+    text: nextTid returns 13-character strings and successive calls are strictly increasing
+      in lexicographic order.
+    codeRefs:
+    - file:test/common/tid_test.ts
 codeRefIndex:
 - file:test/common/bytes_test.ts bytes_test.ts@test/common/bytes_test.ts
 - file:test/common/cid_test.ts cid_test.ts@test/common/cid_test.ts

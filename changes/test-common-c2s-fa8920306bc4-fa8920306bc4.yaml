@@ -9,5 +9,16 @@ spec:
   fromCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
   toCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
 status:
-  phase: Running
-  message: the agent is summarizing test-common
+  phase: Succeeded
+  agentLog: test/common holds the unit suite for hono-pds's shared atproto primitives,
+    five Deno test files that exercise the byte codecs, CID helpers, DAG-CBOR and
+    drisl-CBOR codecs, and TID generation exported by @publicdomainrelay/atproto-repo-common.
+    bytes_test.ts covers hex/base64/base32/utf8 encode-decode round trips plus concat
+    and bytesEqual; cid_test.ts pins the CIDv1 raw-codec layout and validation; dag-cbor_test.ts
+    and drisl_cbor_test.ts are parallel suites over the two CBOR codecs, checking
+    value round trips, CID link embedding, deterministic map key ordering, float rejection,
+    and CID construction; tid_test.ts checks TID shape, monotonicity, parsing and
+    validation. Each file uses Deno.test with assertions from @std/assert and imports
+    every subject under test from the published common package, so the suite verifies
+    the package surface rather than repo-internal paths.
+  message: wrote 15 requirement(s) and 0 interface(s) for test-common

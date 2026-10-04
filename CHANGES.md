@@ -199,6 +199,25 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 - added `r.storage-head-roundtrip` (MUST): "MemoryStorage.getHead must return null for a DID with no stored head, and after setHead must return a head whose commit and rev match what was set."
 - added `r.storage-put-get-roundtrip` (MUST): "MemoryStorage.get must return exactly the bytes previously stored by put for a given CID, and re-putting a CID must overwrite the prior value so that get returns the newest bytes."
 
+### test-common
+
+- intent: "" -> "This context exists to pin down the observable behaviour of the lowest-level shared primitives — byte codecs, CIDs, CBOR codecs, TIDs — that every higher layer of the PDS (repo blocks, MST nodes, record serialization, record keys) is built on. It is the contract test for those primitives: any change to encoding, digest handling, link representation or determinism that would break repo or wire compatibility fails here first, and because the tests import the common package by name they also guard the package's public export list."
+- added `r.bytes-codec-roundtrip` (MUST): "bytes_test.ts asserts round-trip fidelity for the byte codecs: hexEncode/hexDecode, base64Encode/base64Decode, base32Encode/base32Decode and utf8Encode/utf8Decode each decode back to the original input, with pinned literals for hexEncode(Uint8Array[0xde,0xad,0xbe,0xef]) === "deadbeef", base64Encode of the bytes of "hello" === "aGVsbG8=", utf8Encode("Hello, World!") equal to its ASCII byte sequence, and utf8Encode("") equal to a zero-length Uint8Array."
+- added `r.bytes-helpers` (MUST): "concat joins its Uint8Array arguments in order into a single array ([1,2,3] + [4,5] + [6] yields [1,2,3,4,5,6]), and bytesEqual returns true only for two arrays of the same length with identical contents, returning false both for differing bytes and for differing lengths."
+- added `r.bytes-hex-strictness` (MUST): "hexDecode accepts uppercase input ("DEADBEEF" decodes to the same bytes as lowercase) and throws when given an odd-length string such as "abc"."
+- added `r.cid-digest-and-equality` (MUST): "cidDigest extracts a digest that is byte-equal to the digest the CID was built from, cidEquals reports two CIDs built from the same digest as equal, and isValidCid accepts a generated CID while rejecting "binvalid" and the empty string."
+- added `r.cid-encoding-layout` (MUST): "cidFromDigest over a 32-byte SHA-256 digest returns a string beginning with the multibase prefix "b" and 59 characters long, and cidToBytes of that CID returns a 36-byte array whose leading bytes are the CIDv1 raw codec header 0x01 0x71 0x12 0x20."
+- added `r.dag-cbor-cid-links` (MUST): "dag-cbor encodes CIDs as links: cidLink(cid) produces a value that isCidLink recognises, survives an encode/decode cycle still recognised by isCidLink, and cidFromLink of the decoded value returns the original CID."
+- added `r.dag-cbor-determinism` (MUST): "dag-cbor encoding is deterministic: maps built with different key insertion orders ({z,a,m} vs {a,m,z}) encode to byte-identical output, and encoding the same object twice produces identical bytes."
+- added `r.dag-cbor-value-roundtrip` (MUST): "dag-cbor encode/decode round-trips every supported JSON-adjacent value type: positive integers, negative integers, zero, strings, byte arrays, nested arrays, string-keyed maps, and null/true/false, each decoding to a value equal to the original."
+- added `r.drisl-cbor-links-and-determinism` (MUST): "drislCidLink produces links recognised by isDrislCidLink, drislCidFromLink recovers the original CID both directly and after a drislEncode/drislDecode cycle, and drisl encoding of maps with differing key insertion order, or of the same object twice, is byte-identical."
+- added `r.drisl-cbor-rejects-floats` (MUST): "drislEncode throws on a float input such as 3.14, and the thrown Error message includes the text "floats not allowed"."
+- added `r.drisl-cbor-value-roundtrip` (MUST): "drisl_cbor_test.ts repeats the full CBOR value coverage over the drisl codec: drislEncode/drislDecode round-trips integers (positive, negative, zero), strings, byte arrays, nested arrays, maps and null/true/false, with byte arrays decoded as Uint8Array instances of the original length and contents."
+- added `r.drisl-cid-shape` (SHOULD): "drisl_cbor_test.ts asserts that cidFromDigest over a SHA256_DIGEST_LEN digest still yields a string starting with the multibase "b" prefix and 59 characters long, matching the CID shape asserted in the dag-cbor suite."
+- added `r.imports-common-package` (MUST): "Every file in test/common imports its subject under test from the @publicdomainrelay/atproto-repo-common package (bytes codecs and helpers, CID helpers, encode/decode/cidLink, drislEncode/drislDecode and drisl link helpers plus SHA256_DIGEST_LEN, nextTid/parseTid/isValidTid/resetClockId) rather than from repo-relative paths, and drives assertions with Deno.test and @std/assert, so the suites fail if the package stops exporting any of those symbols."
+- added `r.tid-parse-and-validate` (MUST): "parseTid of a generated TID yields an object with numeric micros and numeric clockId fields, and isValidTid accepts a generated TID while rejecting both the empty string and a too-short string such as "short"."
+- added `r.tid-shape-and-ordering` (MUST): "nextTid returns 13-character strings and successive calls are strictly increasing in lexicographic order."
+
 ## Realization
 
 | change | direction | phase | commit | verify | acceptance |
@@ -217,5 +236,5 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 | test-abc-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | test-atproto-repo-deno-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | test-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
-| test-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
+| test-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | test-conformance-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |

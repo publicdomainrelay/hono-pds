@@ -2,7 +2,7 @@
 
 Repository: `hono-pds`
 
-_(empty: write what this context is for)_
+This context exists to pin down the observable behaviour of the lowest-level shared primitives — byte codecs, CIDs, CBOR codecs, TIDs — that every higher layer of the PDS (repo blocks, MST nodes, record serialization, record keys) is built on. It is the contract test for those primitives: any change to encoding, digest handling, link representation or determinism that would break repo or wire compatibility fails here first, and because the tests import the common package by name they also guard the package's public export list.
 
 _The resolved code references are regenerated on every run. Cite the ids above rather than writing them here._
 

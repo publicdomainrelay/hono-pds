@@ -601,6 +601,37 @@ system_contexts:
   upstream: self
   depends_on:
   - sc.hono-pds
+  requirements:
+  - id: r.bytes-codec-roundtrip
+    level: MUST
+  - id: r.bytes-helpers
+    level: MUST
+  - id: r.bytes-hex-strictness
+    level: MUST
+  - id: r.cid-digest-and-equality
+    level: MUST
+  - id: r.cid-encoding-layout
+    level: MUST
+  - id: r.dag-cbor-cid-links
+    level: MUST
+  - id: r.dag-cbor-determinism
+    level: MUST
+  - id: r.dag-cbor-value-roundtrip
+    level: MUST
+  - id: r.drisl-cbor-links-and-determinism
+    level: MUST
+  - id: r.drisl-cbor-rejects-floats
+    level: MUST
+  - id: r.drisl-cbor-value-roundtrip
+    level: MUST
+  - id: r.drisl-cid-shape
+    level: SHOULD
+  - id: r.imports-common-package
+    level: MUST
+  - id: r.tid-parse-and-validate
+    level: MUST
+  - id: r.tid-shape-and-ordering
+    level: MUST
   codeRefIndex:
   - file:test/common/bytes_test.ts bytes_test.ts@test/common/bytes_test.ts
   - file:test/common/cid_test.ts cid_test.ts@test/common/cid_test.ts
