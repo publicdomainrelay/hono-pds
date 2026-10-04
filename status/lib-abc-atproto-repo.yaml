@@ -1,13 +1,11 @@
 syncedFingerprint: 16e698cea6aae43d8307085893a003369301affeb5483192f85b6b4487d24fb5
-realizedSpecHash: d59d433d3cad91ee965be4c04b91976b0ec8198ff06b0d12443785a6dc7cdf25
+realizedSpecHash: 4204820524672cdbb626a1f025e68b18d9818d06842a865f9202141c541d217d
 conditions:
 - type: CodeSynced
-  status: "False"
-  reason: InterfacesMissing
-  message: 'undeclared: BlockStore, CommitEvent, CommitOp, Did, Hasher, Mst, Mst.constructor,
-    Mst.delete, Mst.entries, Mst.get, Mst.init, Mst.root, Mst.set, Mst.size, RepoApi,
-    RepoStore, SequencedFrame, Sequencer, Signer, Storage, Verifier, WriteOp, XrpcError,
-    XrpcError.constructor, XrpcError.toJSON, XrpcErrorName, collect, createMst, diff'
+  status: "True"
+  reason: InterfacesObserved
+  message: every declared interface is observed, nothing undeclared is exported and
+    every requirement code ref resolves
 - type: Drifted
   status: "False"
   reason: FingerprintEqual

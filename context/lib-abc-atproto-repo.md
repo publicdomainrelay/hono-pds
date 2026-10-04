@@ -2,7 +2,7 @@
 
 Repository: `hono-pds`
 
-_(empty: write what this context is for)_
+This context exists to fix the interface contract that every concrete AT Protocol repo transport implements against, so storage backends, signers, and XRPC handlers can be swapped without touching repo semantics. It separates the abstract layer (types, MST algorithm) from the Deno/KV/IndexedDB and Hono implementations that live in sibling packages, and it pins the error shape (XrpcError) that handlers serialize onto the wire.
 
 _The resolved code references are regenerated on every run. Cite the ids above rather than writing them here._
 

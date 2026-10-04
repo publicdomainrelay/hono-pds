@@ -8,7 +8,302 @@ spec:
   upstream: self
   dependsOn:
   - sc.hono-pds
+  intent: This context exists to fix the interface contract that every concrete AT
+    Protocol repo transport implements against, so storage backends, signers, and
+    XRPC handlers can be swapped without touching repo semantics. It separates the
+    abstract layer (types, MST algorithm) from the Deno/KV/IndexedDB and Hono implementations
+    that live in sibling packages, and it pins the error shape (XrpcError) that handlers
+    serialize onto the wire.
+  requirements:
+  - id: r.abc-layer-isolation
+    level: SHOULD
+    text: The MST implementation depends only on the abstract BlockStore and Hasher
+      contracts and performs no I/O beyond them, keeping this layer free of any concrete
+      database or HTTP transport.
+    codeRefs:
+    - file:lib/abc/atproto-repo/mst.ts
+    - interface:d8a5a6727dd69258cce4145426171842
+    - type_alias:0df65e39f6a148eb2b288ce202a29d17
+  - id: r.block-diff-and-collect
+    level: MUST
+    text: diff returns the Cids of blocks reachable from the new root but not from
+      the old root, giving a sync peer exactly the blocks it is missing, and collect
+      walks a tree from a Cid accumulating every reachable Cid into a caller-supplied
+      Set.
+    codeRefs:
+    - file:lib/abc/atproto-repo/mst.ts
+    - function:90dc40a4968e57f7f57f0cb6652039e8
+    - function:ff5f6ab5e4d797e00a99ac8e769e4643
+  - id: r.create-mst-factory
+    level: MUST
+    text: createMst builds an Mst from a BlockStore and a Hasher with an optional
+      root Cid, so callers open a tree through one factory instead of the constructor.
+    codeRefs:
+    - class:d06445ebf113879bfe039963f6a5bd8b
+    - function:3905cbfd5760c8c30faff386505e6c1c
+  - id: r.did-identifier
+    level: MUST
+    text: Did is a plain string alias naming a repository account, and every contract
+      that identifies a repo (signing, verification, head lookup) takes a Did rather
+      than an untyped string.
+    codeRefs:
+    - file:lib/abc/atproto-repo/contracts.ts
+    - type_alias:a1226aa30ef5c6cb159992d26f8819f1
+  - id: r.mst-content-addressed
+    level: MUST
+    text: Mst stores a key to Cid map as an immutable tree of blocks inside a BlockStore,
+      hashing nodes through an injected Hasher, and is constructed from a store, a
+      hasher and a nullable root Cid so an existing tree can be reopened from its
+      root.
+    codeRefs:
+    - class:d06445ebf113879bfe039963f6a5bd8b
+    - file:lib/abc/atproto-repo/mst.ts
+    - interface:d8a5a6727dd69258cce4145426171842
+    - method:084ea7f460759c021139ca67768f3afb
+    - type_alias:0df65e39f6a148eb2b288ce202a29d17
+  - id: r.mst-entries-stream
+    level: MUST
+    text: Mst.entries walks the tree lazily as an AsyncIterable of key/value pairs,
+      so a large tree is enumerated without materializing every entry at once.
+    codeRefs:
+    - class:d06445ebf113879bfe039963f6a5bd8b
+    - method:e6f7b846ce82c79eeec9641d58aca61f
+  - id: r.mst-init
+    level: MUST
+    text: Mst.init loads the tree from its BlockStore before use, so subsequent reads
+      and writes operate on nodes that have already been fetched.
+    codeRefs:
+    - class:d06445ebf113879bfe039963f6a5bd8b
+    - method:09620b4b198aecdd760d052de7007bb3
+  - id: r.mst-read-write-delete
+    level: MUST
+    text: Mst.get returns the Cid stored for a key or null when the key is absent;
+      Mst.set inserts or replaces the key and returns the new root Cid; Mst.delete
+      removes the key and returns the previous root Cid, or null when the key was
+      not present.
+    codeRefs:
+    - method:5a6b08fc1acb875cce264c92e5a7343e
+    - method:77380b4de741a5b9ff159da548f87e63
+    - method:d13e4b77bb13407d233ab091e93a3de5
+  - id: r.mst-root-and-size
+    level: MUST
+    text: Mst.root returns the current root Cid, or null when the tree is empty, and
+      Mst.size returns the number of key entries held.
+    codeRefs:
+    - method:6562026cb874eca2c60ebeacf277d51d
+    - method:9a8218f29f90f644da1d3c5674e4b6ca
+  - id: r.signer-and-verifier
+    level: MUST
+    text: Signer reports its own did and signs a byte string into a signature; Verifier
+      independently checks a signature against a did and the signed bytes and answers
+      with a boolean, so commit signing and verification are separable roles.
+    codeRefs:
+    - file:lib/abc/atproto-repo/contracts.ts
+    - interface:abbbf2c2ea9f8a447e68f395be386460
+    - interface:dff784d3c8e1096efe4c6892577951e4
+  - id: r.single-entrypoint
+    level: MUST
+    text: mod.ts is the package's single public entrypoint and re-exports both the
+      contract types from contracts.ts and the MST implementation from mst.ts, so
+      consumers import the package once.
+    codeRefs:
+    - file:lib/abc/atproto-repo/contracts.ts
+    - file:lib/abc/atproto-repo/mod.ts
+    - file:lib/abc/atproto-repo/mst.ts
+  - id: r.storage-boundaries
+    level: MUST
+    text: BlockStore is the content-addressed block boundary keyed by Cid and Storage
+      layers record persistence above it, while RepoStore records each repo's head
+      as a commit Cid paired with a rev Tid, returning null from getHead when a repo
+      has no head yet and overwriting it through setHead.
+    codeRefs:
+    - interface:c8d7c80c6db87b26bc346da64519e701
+    - interface:d8a5a6727dd69258cce4145426171842
+    - interface:e903899c25d74d22aaf1eeeb37b96e8b
+  - id: r.write-path
+    level: SHOULD
+    text: CommitOp, CommitEvent, SequencedFrame, Sequencer and WriteOp describe the
+      repo write path — an operation, the commit event it produces, the frame the
+      sequencer emits, and the operation requested by a client — and RepoApi is the
+      surface a transport exposes for those writes.
+    codeRefs:
+    - interface:031452914ceefd78c22f16a129903ca1
+    - interface:1f3969dfbc5f3382890c510bbd4419a0
+    - interface:3f01cd6513e21ba8df14ea6942af520f
+    - interface:5830c128346ccf4915cd2d4d97381761
+    - interface:9e42467bdbb97b746400f797e24ce6ab
+    - type_alias:ddf028621b1d7f7d7e6c8aeec1665727
+  - id: r.xrpc-error-shape
+    level: MUST
+    text: XrpcError carries an XrpcErrorName and a message, and its toJSON produces
+      exactly { error, message } so handlers can serialize it as an AT Protocol XRPC
+      error body.
+    codeRefs:
+    - class:ab9080c52a15284a59b5097300b9a82c
+    - file:lib/abc/atproto-repo/contracts.ts
+    - method:12cefd530567d2dc4ddd740467caa8ef
+    - method:79298215b0ee8b76add8eb6babc1d724
+    - type_alias:a3e8babba3fef67886d0a412b9fbc5ad
+  - id: r.xrpc-error-status-optional
+    level: SHOULD
+    text: The HTTP status is optional when constructing an XrpcError, so an error
+      can be raised before a transport has decided a status code for it.
+    codeRefs:
+    - class:ab9080c52a15284a59b5097300b9a82c
+    - method:79298215b0ee8b76add8eb6babc1d724
+  interfaces:
+  - name: BlockStore
+    kind: interface
+    signature: interface BlockStore
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: CommitEvent
+    kind: interface
+    signature: interface CommitEvent
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: CommitOp
+    kind: interface
+    signature: interface CommitOp
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: Did
+    kind: type_alias
+    signature: type Did = string
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: Hasher
+    kind: type_alias
+    signature: type Hasher
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: Mst
+    kind: class
+    signature: class Mst
+    file: lib/abc/atproto-repo/mst.ts
+  - name: Mst.constructor
+    kind: method
+    signature: 'constructor(store: BlockStore, root: Cid | null, sha256Fn: Hasher)'
+    file: lib/abc/atproto-repo/mst.ts
+  - name: Mst.delete
+    kind: method
+    signature: 'delete(key: string): Promise<Cid | null>'
+    file: lib/abc/atproto-repo/mst.ts
+  - name: Mst.entries
+    kind: method
+    signature: 'entries(): AsyncIterable<{ key: string; value: Cid }>'
+    file: lib/abc/atproto-repo/mst.ts
+  - name: Mst.get
+    kind: method
+    signature: 'get(key: string): Promise<Cid | null>'
+    file: lib/abc/atproto-repo/mst.ts
+  - name: Mst.init
+    kind: method
+    signature: 'init(): Promise<void>'
+    file: lib/abc/atproto-repo/mst.ts
+  - name: Mst.root
+    kind: method
+    signature: 'root(): Cid | null'
+    file: lib/abc/atproto-repo/mst.ts
+  - name: Mst.set
+    kind: method
+    signature: 'set(key: string, value: Cid): Promise<Cid>'
+    file: lib/abc/atproto-repo/mst.ts
+  - name: Mst.size
+    kind: method
+    signature: 'size(): number'
+    file: lib/abc/atproto-repo/mst.ts
+  - name: RepoApi
+    kind: interface
+    signature: interface RepoApi
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: RepoStore
+    kind: interface
+    signature: 'interface RepoStore { getHead(did: Did): Promise<{ commit: Cid; rev:
+      Tid } | null>; setHead(did: Did, head: { commit: Cid; rev: Tid }): Promise<void>
+      }'
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: SequencedFrame
+    kind: type_alias
+    signature: type SequencedFrame
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: Sequencer
+    kind: interface
+    signature: interface Sequencer
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: Signer
+    kind: interface
+    signature: 'interface Signer { did(): Did; sign(bytes: Bytes): Promise<Bytes>
+      }'
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: Storage
+    kind: interface
+    signature: interface Storage
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: Verifier
+    kind: interface
+    signature: 'interface Verifier { verify(did: Did, bytes: Bytes, sig: Bytes): Promise<boolean>
+      }'
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: WriteOp
+    kind: interface
+    signature: interface WriteOp
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: XrpcError
+    kind: class
+    signature: class XrpcError
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: XrpcError.constructor
+    kind: method
+    signature: 'constructor(error: XrpcErrorName, message: string, status?: number)'
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: XrpcError.toJSON
+    kind: method
+    signature: 'toJSON(): { error: string; message: string }'
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: XrpcErrorName
+    kind: type_alias
+    signature: type XrpcErrorName
+    file: lib/abc/atproto-repo/contracts.ts
+  - name: collect
+    kind: function
+    signature: 'collect(cid: Cid | null, set: Set<Cid>): Promise<void>'
+    file: lib/abc/atproto-repo/mst.ts
+  - name: createMst
+    kind: function
+    signature: 'createMst(store: BlockStore, sha256Fn: Hasher, root?: Cid | null):
+      Mst'
+    file: lib/abc/atproto-repo/mst.ts
+  - name: diff
+    kind: function
+    signature: 'diff(store: BlockStore, oldRoot: Cid | null, newRoot: Cid | null):
+      Promise<Cid[]>'
+    file: lib/abc/atproto-repo/mst.ts
 codeRefIndex:
+- class:ab9080c52a15284a59b5097300b9a82c XrpcError@lib/abc/atproto-repo/contracts.ts:105
+- class:d06445ebf113879bfe039963f6a5bd8b Mst@lib/abc/atproto-repo/mst.ts:526
 - file:lib/abc/atproto-repo/contracts.ts contracts.ts@lib/abc/atproto-repo/contracts.ts
 - file:lib/abc/atproto-repo/mod.ts mod.ts@lib/abc/atproto-repo/mod.ts
 - file:lib/abc/atproto-repo/mst.ts mst.ts@lib/abc/atproto-repo/mst.ts
+- function:3905cbfd5760c8c30faff386505e6c1c createMst@lib/abc/atproto-repo/mst.ts:701
+- function:90dc40a4968e57f7f57f0cb6652039e8 collect@lib/abc/atproto-repo/mst.ts:682
+- function:ff5f6ab5e4d797e00a99ac8e769e4643 diff@lib/abc/atproto-repo/mst.ts:674
+- interface:031452914ceefd78c22f16a129903ca1 CommitOp@lib/abc/atproto-repo/contracts.ts:31
+- interface:1f3969dfbc5f3382890c510bbd4419a0 CommitEvent@lib/abc/atproto-repo/contracts.ts:38
+- interface:3f01cd6513e21ba8df14ea6942af520f WriteOp@lib/abc/atproto-repo/contracts.ts:58
+- interface:5830c128346ccf4915cd2d4d97381761 Sequencer@lib/abc/atproto-repo/contracts.ts:50
+- interface:9e42467bdbb97b746400f797e24ce6ab RepoApi@lib/abc/atproto-repo/contracts.ts:65
+- interface:abbbf2c2ea9f8a447e68f395be386460 Verifier@lib/abc/atproto-repo/contracts.ts:12
+- interface:c8d7c80c6db87b26bc346da64519e701 Storage@lib/abc/atproto-repo/contracts.ts:29
+- interface:d8a5a6727dd69258cce4145426171842 BlockStore@lib/abc/atproto-repo/contracts.ts:18
+- interface:dff784d3c8e1096efe4c6892577951e4 Signer@lib/abc/atproto-repo/contracts.ts:7
+- interface:e903899c25d74d22aaf1eeeb37b96e8b RepoStore@lib/abc/atproto-repo/contracts.ts:24
+- method:084ea7f460759c021139ca67768f3afb Mst.constructor@lib/abc/atproto-repo/mst.ts:533
+- method:09620b4b198aecdd760d052de7007bb3 Mst.init@lib/abc/atproto-repo/mst.ts:549
+- method:12cefd530567d2dc4ddd740467caa8ef XrpcError.toJSON@lib/abc/atproto-repo/contracts.ts:116
+- method:5a6b08fc1acb875cce264c92e5a7343e Mst.get@lib/abc/atproto-repo/mst.ts:560
+- method:6562026cb874eca2c60ebeacf277d51d Mst.size@lib/abc/atproto-repo/mst.ts:545
+- method:77380b4de741a5b9ff159da548f87e63 Mst.delete@lib/abc/atproto-repo/mst.ts:591
+- method:79298215b0ee8b76add8eb6babc1d724 XrpcError.constructor@lib/abc/atproto-repo/contracts.ts:109
+- method:9a8218f29f90f644da1d3c5674e4b6ca Mst.root@lib/abc/atproto-repo/mst.ts:541
+- method:d13e4b77bb13407d233ab091e93a3de5 Mst.set@lib/abc/atproto-repo/mst.ts:567
+- method:e6f7b846ce82c79eeec9641d58aca61f Mst.entries@lib/abc/atproto-repo/mst.ts:620
+- type_alias:0df65e39f6a148eb2b288ce202a29d17 Hasher@lib/abc/atproto-repo/contracts.ts:16
+- type_alias:a1226aa30ef5c6cb159992d26f8819f1 Did@lib/abc/atproto-repo/contracts.ts:5
+- type_alias:a3e8babba3fef67886d0a412b9fbc5ad XrpcErrorName@lib/abc/atproto-repo/contracts.ts:88
+- type_alias:ddf028621b1d7f7d7e6c8aeec1665727 SequencedFrame@lib/abc/atproto-repo/contracts.ts:48

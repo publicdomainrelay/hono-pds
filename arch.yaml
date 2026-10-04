@@ -74,10 +74,70 @@ system_contexts:
   upstream: self
   depends_on:
   - sc.hono-pds
+  requirements:
+  - id: r.abc-layer-isolation
+    level: SHOULD
+  - id: r.block-diff-and-collect
+    level: MUST
+  - id: r.create-mst-factory
+    level: MUST
+  - id: r.did-identifier
+    level: MUST
+  - id: r.mst-content-addressed
+    level: MUST
+  - id: r.mst-entries-stream
+    level: MUST
+  - id: r.mst-init
+    level: MUST
+  - id: r.mst-read-write-delete
+    level: MUST
+  - id: r.mst-root-and-size
+    level: MUST
+  - id: r.signer-and-verifier
+    level: MUST
+  - id: r.single-entrypoint
+    level: MUST
+  - id: r.storage-boundaries
+    level: MUST
+  - id: r.write-path
+    level: SHOULD
+  - id: r.xrpc-error-shape
+    level: MUST
+  - id: r.xrpc-error-status-optional
+    level: SHOULD
   codeRefIndex:
+  - class:ab9080c52a15284a59b5097300b9a82c XrpcError@lib/abc/atproto-repo/contracts.ts:105
+  - class:d06445ebf113879bfe039963f6a5bd8b Mst@lib/abc/atproto-repo/mst.ts:526
   - file:lib/abc/atproto-repo/contracts.ts contracts.ts@lib/abc/atproto-repo/contracts.ts
   - file:lib/abc/atproto-repo/mod.ts mod.ts@lib/abc/atproto-repo/mod.ts
   - file:lib/abc/atproto-repo/mst.ts mst.ts@lib/abc/atproto-repo/mst.ts
+  - function:3905cbfd5760c8c30faff386505e6c1c createMst@lib/abc/atproto-repo/mst.ts:701
+  - function:90dc40a4968e57f7f57f0cb6652039e8 collect@lib/abc/atproto-repo/mst.ts:682
+  - function:ff5f6ab5e4d797e00a99ac8e769e4643 diff@lib/abc/atproto-repo/mst.ts:674
+  - interface:031452914ceefd78c22f16a129903ca1 CommitOp@lib/abc/atproto-repo/contracts.ts:31
+  - interface:1f3969dfbc5f3382890c510bbd4419a0 CommitEvent@lib/abc/atproto-repo/contracts.ts:38
+  - interface:3f01cd6513e21ba8df14ea6942af520f WriteOp@lib/abc/atproto-repo/contracts.ts:58
+  - interface:5830c128346ccf4915cd2d4d97381761 Sequencer@lib/abc/atproto-repo/contracts.ts:50
+  - interface:9e42467bdbb97b746400f797e24ce6ab RepoApi@lib/abc/atproto-repo/contracts.ts:65
+  - interface:abbbf2c2ea9f8a447e68f395be386460 Verifier@lib/abc/atproto-repo/contracts.ts:12
+  - interface:c8d7c80c6db87b26bc346da64519e701 Storage@lib/abc/atproto-repo/contracts.ts:29
+  - interface:d8a5a6727dd69258cce4145426171842 BlockStore@lib/abc/atproto-repo/contracts.ts:18
+  - interface:dff784d3c8e1096efe4c6892577951e4 Signer@lib/abc/atproto-repo/contracts.ts:7
+  - interface:e903899c25d74d22aaf1eeeb37b96e8b RepoStore@lib/abc/atproto-repo/contracts.ts:24
+  - method:084ea7f460759c021139ca67768f3afb Mst.constructor@lib/abc/atproto-repo/mst.ts:533
+  - method:09620b4b198aecdd760d052de7007bb3 Mst.init@lib/abc/atproto-repo/mst.ts:549
+  - method:12cefd530567d2dc4ddd740467caa8ef XrpcError.toJSON@lib/abc/atproto-repo/contracts.ts:116
+  - method:5a6b08fc1acb875cce264c92e5a7343e Mst.get@lib/abc/atproto-repo/mst.ts:560
+  - method:6562026cb874eca2c60ebeacf277d51d Mst.size@lib/abc/atproto-repo/mst.ts:545
+  - method:77380b4de741a5b9ff159da548f87e63 Mst.delete@lib/abc/atproto-repo/mst.ts:591
+  - method:79298215b0ee8b76add8eb6babc1d724 XrpcError.constructor@lib/abc/atproto-repo/contracts.ts:109
+  - method:9a8218f29f90f644da1d3c5674e4b6ca Mst.root@lib/abc/atproto-repo/mst.ts:541
+  - method:d13e4b77bb13407d233ab091e93a3de5 Mst.set@lib/abc/atproto-repo/mst.ts:567
+  - method:e6f7b846ce82c79eeec9641d58aca61f Mst.entries@lib/abc/atproto-repo/mst.ts:620
+  - type_alias:0df65e39f6a148eb2b288ce202a29d17 Hasher@lib/abc/atproto-repo/contracts.ts:16
+  - type_alias:a1226aa30ef5c6cb159992d26f8819f1 Did@lib/abc/atproto-repo/contracts.ts:5
+  - type_alias:a3e8babba3fef67886d0a412b9fbc5ad XrpcErrorName@lib/abc/atproto-repo/contracts.ts:88
+  - type_alias:ddf028621b1d7f7d7e6c8aeec1665727 SequencedFrame@lib/abc/atproto-repo/contracts.ts:48
 - id: sc.lib-atproto-oauth-server-deno
   name: lib-atproto-oauth-server-deno
   spec: specs/lib-atproto-oauth-server-deno.yaml

@@ -29,11 +29,30 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 - added `r.token-store-revoke` (MUST): "TokenStore.revoke takes a token and resolves to void, invalidating it without reporting a result."
 - added `r.token-store-validate` (MUST): "TokenStore.validate takes an access token and resolves either to a TokenValidation exposing sub, optional handle, scope, and jkt, or to null when the token is not valid, rather than throwing."
 
+### lib-abc-atproto-repo
+
+- intent: "" -> "This context exists to fix the interface contract that every concrete AT Protocol repo transport implements against, so storage backends, signers, and XRPC handlers can be swapped without touching repo semantics. It separates the abstract layer (types, MST algorithm) from the Deno/KV/IndexedDB and Hono implementations that live in sibling packages, and it pins the error shape (XrpcError) that handlers serialize onto the wire."
+- added `r.abc-layer-isolation` (SHOULD): "The MST implementation depends only on the abstract BlockStore and Hasher contracts and performs no I/O beyond them, keeping this layer free of any concrete database or HTTP transport."
+- added `r.block-diff-and-collect` (MUST): "diff returns the Cids of blocks reachable from the new root but not from the old root, giving a sync peer exactly the blocks it is missing, and collect walks a tree from a Cid accumulating every reachable Cid into a caller-supplied Set."
+- added `r.create-mst-factory` (MUST): "createMst builds an Mst from a BlockStore and a Hasher with an optional root Cid, so callers open a tree through one factory instead of the constructor."
+- added `r.did-identifier` (MUST): "Did is a plain string alias naming a repository account, and every contract that identifies a repo (signing, verification, head lookup) takes a Did rather than an untyped string."
+- added `r.mst-content-addressed` (MUST): "Mst stores a key to Cid map as an immutable tree of blocks inside a BlockStore, hashing nodes through an injected Hasher, and is constructed from a store, a hasher and a nullable root Cid so an existing tree can be reopened from its root."
+- added `r.mst-entries-stream` (MUST): "Mst.entries walks the tree lazily as an AsyncIterable of key/value pairs, so a large tree is enumerated without materializing every entry at once."
+- added `r.mst-init` (MUST): "Mst.init loads the tree from its BlockStore before use, so subsequent reads and writes operate on nodes that have already been fetched."
+- added `r.mst-read-write-delete` (MUST): "Mst.get returns the Cid stored for a key or null when the key is absent; Mst.set inserts or replaces the key and returns the new root Cid; Mst.delete removes the key and returns the previous root Cid, or null when the key was not present."
+- added `r.mst-root-and-size` (MUST): "Mst.root returns the current root Cid, or null when the tree is empty, and Mst.size returns the number of key entries held."
+- added `r.signer-and-verifier` (MUST): "Signer reports its own did and signs a byte string into a signature; Verifier independently checks a signature against a did and the signed bytes and answers with a boolean, so commit signing and verification are separable roles."
+- added `r.single-entrypoint` (MUST): "mod.ts is the package's single public entrypoint and re-exports both the contract types from contracts.ts and the MST implementation from mst.ts, so consumers import the package once."
+- added `r.storage-boundaries` (MUST): "BlockStore is the content-addressed block boundary keyed by Cid and Storage layers record persistence above it, while RepoStore records each repo's head as a commit Cid paired with a rev Tid, returning null from getHead when a repo has no head yet and overwriting it through setHead."
+- added `r.write-path` (SHOULD): "CommitOp, CommitEvent, SequencedFrame, Sequencer and WriteOp describe the repo write path — an operation, the commit event it produces, the frame the sequencer emits, and the operation requested by a client — and RepoApi is the surface a transport exposes for those writes."
+- added `r.xrpc-error-shape` (MUST): "XrpcError carries an XrpcErrorName and a message, and its toJSON produces exactly { error, message } so handlers can serialize it as an AT Protocol XRPC error body."
+- added `r.xrpc-error-status-optional` (SHOULD): "The HTTP status is optional when constructing an XrpcError, so an error can be raised before a transport has decided a status code for it."
+
 ## Realization
 
 | change | direction | phase | commit | verify | acceptance |
 | --- | --- | --- | --- | --- | --- |
 | hono-pds-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | lib-abc-atproto-oauth-server-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
-| lib-abc-atproto-repo-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
+| lib-abc-atproto-repo-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | lib-atproto-oauth-server-deno-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
