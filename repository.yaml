@@ -8,6 +8,7 @@ spec:
   branch: fix/crawler-announce-retries
   verify:
   - deno
+  - task
   - test
   populate:
     partition: directory
