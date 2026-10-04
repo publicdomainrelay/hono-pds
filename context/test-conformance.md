@@ -2,7 +2,7 @@
 
 Repository: `hono-pds`
 
-_(empty: write what this context is for)_
+This context exists to prove, mechanically, that the PDS implementation conforms to AT Protocol XRPC and repo semantics at the boundaries that clients actually observe: the HTTP route surface, the signed commit and CBSE/CBOR wire encoding, the firehose frame stream, the documented OAuth and PDS fixes, and the sandboxed production target. It is the executable contract that the sc.* implementation contexts must satisfy, and the reason a change to the factory, storage, sequencer or sandbox cannot silently drift from the spec.
 
 _The resolved code references are regenerated on every run. Cite the ids above rather than writing them here._
 

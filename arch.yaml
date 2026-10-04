@@ -644,6 +644,23 @@ system_contexts:
   upstream: self
   depends_on:
   - sc.hono-pds
+  requirements:
+  - id: r.commit-cbor-and-cid-conformance
+    level: MUST
+  - id: r.crud-xrpc-route-conformance
+    level: MUST
+  - id: r.docs-fix-compliance
+    level: MUST
+  - id: r.firehose-frame-contract
+    level: MUST
+  - id: r.fresh-service-auth-token-per-write
+    level: MUST
+  - id: r.named-conformance-test-labels
+    level: SHOULD
+  - id: r.real-crypto-no-mocks
+    level: SHOULD
+  - id: r.sandbox-http-boundary-conformance
+    level: MUST
   codeRefIndex:
   - file:test/conformance/commit-conformance.test.ts commit-conformance.test.ts@test/conformance/commit-conformance.test.ts
   - file:test/conformance/crud-conformance.test.ts crud-conformance.test.ts@test/conformance/crud-conformance.test.ts

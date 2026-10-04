@@ -8,6 +8,96 @@ spec:
   upstream: self
   dependsOn:
   - sc.hono-pds
+  intent: 'This context exists to prove, mechanically, that the PDS implementation
+    conforms to AT Protocol XRPC and repo semantics at the boundaries that clients
+    actually observe: the HTTP route surface, the signed commit and CBSE/CBOR wire
+    encoding, the firehose frame stream, the documented OAuth and PDS fixes, and the
+    sandboxed production target. It is the executable contract that the sc.* implementation
+    contexts must satisfy, and the reason a change to the factory, storage, sequencer
+    or sandbox cannot silently drift from the spec.'
+  requirements:
+  - id: r.commit-cbor-and-cid-conformance
+    level: MUST
+    text: commit-conformance.test.ts must assert that a commit produced by factory.api.applyWrites
+      has the version:3 CBOR structure, that its CID is reproducible from the bytes
+      stored in MemoryStorage, that its signature verifies with the did:key via createVerifier,
+      and that a second write carries a prev pointing at the previous commit.
+    codeRefs:
+    - file:test/conformance/commit-conformance.test.ts
+  - id: r.crud-xrpc-route-conformance
+    level: MUST
+    text: crud-conformance.test.ts must drive factory.app.request over the XRPC surface
+      so that _health and com.atproto.server.describeServer return version, did, availableUserDomains
+      and inviteCodeRequired, /.well-known/atproto-did returns the signer did, and
+      com.atproto.repo.createRecord, getRecord, putRecord, deleteRecord, listRecords
+      and describeRepo round-trip records with uri values prefixed at://<did>/ and
+      CIDs starting with multibase b.
+    codeRefs:
+    - file:test/conformance/crud-conformance.test.ts
+  - id: r.docs-fix-compliance
+    level: MUST
+    text: 'docs-compliance.test.ts must verify the documented fixes: the OAuth authorization-server
+      metadata advertises the required grant types, code_challenge_methods_supported
+      S256, scope atproto, dpop signing alg ES256, require_pushed_authorization_requests
+      true and the token_endpoint_auth_methods_supported entries none and private_key_jwt;
+      a PAR request uri is a urn:ietf:params:oauth:request_uri: value that consume()
+      accepts exactly once; commit CIDs and record CIDs both use the 0x71 codec with
+      32-byte SHA-256 digests; and the firehose frame is framed as an op-1 / #commit
+      CBOR header followed by a body that omits $type while keeping seq, repo, rev
+      and ops.'
+    codeRefs:
+    - file:test/conformance/docs-compliance.test.ts
+  - id: r.firehose-frame-contract
+    level: MUST
+    text: 'firehose-conformance.test.ts must assert that factory.subscribe delivers
+      a SequencedFrame carrying the required #commit fields (seq, repo, rev, ops,
+      time), that frame ops mirror the actions and collection/rkey paths of the applyWrites
+      call that produced them, and that successive frame seq numbers are monotonic.'
+    codeRefs:
+    - file:test/conformance/firehose-conformance.test.ts
+  - id: r.fresh-service-auth-token-per-write
+    level: MUST
+    text: The crud-conformance helper createAccountAndToken must POST com.atproto.server.createAccount,
+      resolve the account signer from the factory and return a getToken function that
+      mints a new signServiceAuth JWT audienced at the PDS did on every call, so each
+      authenticated write uses a fresh jti and replay prevention does not reject later
+      requests.
+    codeRefs:
+    - file:test/conformance/crud-conformance.test.ts
+  - id: r.named-conformance-test-labels
+    level: SHOULD
+    text: Each Deno.test in the suites should carry a bracket-prefixed label naming
+      its suite ([conformance] for the factory suites, [conformance:sandbox] for the
+      sandbox suite, [compliance] for the docs-compliance suite) so the targeted conformance
+      set can be filtered from the full test run.
+    codeRefs:
+    - file:test/conformance/commit-conformance.test.ts
+    - file:test/conformance/crud-conformance.test.ts
+    - file:test/conformance/docs-compliance.test.ts
+    - file:test/conformance/firehose-conformance.test.ts
+    - file:test/conformance/sandbox-conformance.test.ts
+  - id: r.real-crypto-no-mocks
+    level: SHOULD
+    text: Conformance suites should build state from MemoryStorage and a real Secp256k1Keypair-backed
+      signer via signerFromKeypair and assert with @std/assert, rather than mocking
+      storage, signing or verifier internals, so the tests exercise the same code
+      path a deployment takes.
+    codeRefs:
+    - file:test/conformance/commit-conformance.test.ts
+    - file:test/conformance/crud-conformance.test.ts
+    - file:test/conformance/firehose-conformance.test.ts
+  - id: r.sandbox-http-boundary-conformance
+    level: MUST
+    text: sandbox-conformance.test.ts must exercise the Worker-sandboxed PDS only
+      through createPdsSandbox's fetch(), asserting the same XRPC responses as the
+      in-process factory, that describeServer and /.well-known/atproto-did agree on
+      one did:key, that getServiceAuth returns a three-segment JWT for a valid aud
+      and 400 when aud is missing, that a write's uri is scoped to the authenticated
+      account did, that an empty writes array yields zero results, that unknown routes
+      keep a 404 status, and that two independently created sandboxes have different
+      DIDs; every test shuts its sandbox down in a finally block.
+    codeRefs:
+    - file:test/conformance/sandbox-conformance.test.ts
 codeRefIndex:
 - file:test/conformance/commit-conformance.test.ts commit-conformance.test.ts@test/conformance/commit-conformance.test.ts
 - file:test/conformance/crud-conformance.test.ts crud-conformance.test.ts@test/conformance/crud-conformance.test.ts

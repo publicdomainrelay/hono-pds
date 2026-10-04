@@ -9,5 +9,21 @@ spec:
   fromCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
   toCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
 status:
-  phase: Running
-  message: the agent is summarizing test-conformance
+  phase: Succeeded
+  agentLog: test/conformance holds five Deno test suites that pin the observable behaviour
+    of the hono-pds reference PDS and its sandboxed twin against the AT Protocol specs.
+    commit-conformance.test.ts drives factory.api.applyWrites directly and inspects
+    the resulting commit object, CBOR bytes and CID; crud-conformance.test.ts drives
+    the same factory through factory.app.request over the XRPC routes _health, com.atproto.server.describeServer,
+    .well-known/atproto-did, createAccount, getServiceAuth, createRecord, getRecord,
+    putRecord, deleteRecord, listRecords and describeRepo with real secp256k1 service-auth
+    Bearer tokens; firehose-conformance.test.ts subscribes through factory.subscribe
+    and asserts the SequencedFrame shape and ordering; docs-compliance.test.ts checks
+    the fixes for OAuth AS metadata, PAR one-time consumption and the CBOR wire framing
+    that moves $type into the header; sandbox-conformance.test.ts re-runs the XRPC
+    conformance set against createPdsSandbox from scripts/sandbox.ts through its fetch()
+    boundary so the Worker-sandboxed PDS is held to the same semantics as the in-process
+    factory. Every suite builds a real factory from MemoryStorage plus a Secp256k1Keypair
+    signer rather than stubbing internals.
+  message: wrote 8 requirement(s) and 0 interface(s) for test-conformance; interface
+    createAccountAndToken is not in the observed facts; dropped
