@@ -230,6 +230,18 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 - added `r.real-crypto-no-mocks` (SHOULD): "Conformance suites should build state from MemoryStorage and a real Secp256k1Keypair-backed signer via signerFromKeypair and assert with @std/assert, rather than mocking storage, signing or verifier internals, so the tests exercise the same code path a deployment takes."
 - added `r.sandbox-http-boundary-conformance` (MUST): "sandbox-conformance.test.ts must exercise the Worker-sandboxed PDS only through createPdsSandbox's fetch(), asserting the same XRPC responses as the in-process factory, that describeServer and /.well-known/atproto-did agree on one did:key, that getServiceAuth returns a three-segment JWT for a valid aud and 400 when aud is missing, that a write's uri is scoped to the authenticated account did, that an empty writes array yields zero results, that unknown routes keep a 404 status, and that two independently created sandboxes have different DIDs; every test shuts its sandbox down in a finally block."
 
+### test-hono-factory
+
+- intent: "" -> "This context exists to pin the observable HTTP and API behaviour of the repo factory: that its XRPC routes answer with AT Protocol-shaped payloads (uri plus cid on writes, value on reads, collections plus head on describeRepo, cursor on paginated lists), that its subscribe handler delivers a SequencedFrame carrying the committed ops and can be disposed, and that write responses report the record CID rather than the commit CID so that strongRefs built from a write address the same bytes a later getRecord or listRecords returns. It is the regression net for the factory's public surface, including the fix that createRecord and putRecord no longer answer with the commit CID, and it is the place a change to factory routing, auth, or CID reporting is expected to show up as a failing test."
+- added `r.e2e-create-record-returns-uri-and-cid` (MUST): "Posting to /xrpc/com.atproto.repo.createRecord with a valid service-auth Bearer token must answer 200 with a body whose uri is at://<did>/<collection>/<rkey> and whose cid is a string."
+- added `r.e2e-describe-repo-lists-collections` (MUST): "GET /xrpc/com.atproto.repo.describeRepo must answer 200 with the set of collections holding records for that repo and a head value identifying the current commit."
+- added `r.e2e-factory-standup-in-memory` (MUST): "Every test must be able to stand up a working factory from only a Storage (MemoryStorage) and a Signer by calling createRepoFactory, with no OAuth server, admin password or external PLC dependency configured."
+- added `r.e2e-get-record-returns-stored-value` (MUST): "A record written through factory.api.applyWrites must be readable back through GET /xrpc/com.atproto.repo.getRecord with repo, collection and rkey query parameters, answering 200 with uri, cid and a value equal to the stored record."
+- added `r.e2e-list-records-paginates` (MUST): "GET /xrpc/com.atproto.repo.listRecords must honour the limit query parameter, returning at most that many records in an array and a cursor when more records remain in the collection."
+- added `r.e2e-service-auth-token-per-request` (MUST): "Authenticated write calls must mint a fresh service-auth JWT per request by signing with the signer from factory.getUserSigner(did), because a token issued for one call is not reusable for another."
+- added `r.e2e-subscribe-emits-sequenced-frame` (MUST): "factory.subscribe must invoke the supplied handler with a SequencedFrame after a write commits, whose repo equals the account DID, whose ops array holds one entry with action create and path <collection>/<rkey>, and must return a dispose function that stops delivery."
+- added `r.e2e-write-cid-is-record-cid` (MUST): "The cid returned by createRecord and putRecord must equal the cid that getRecord and listRecords report for the same record, and a putRecord that changes the record body must produce a different cid than the createRecord it replaced."
+
 ## Realization
 
 | change | direction | phase | commit | verify | acceptance |
@@ -250,4 +262,4 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 | test-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | test-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | test-conformance-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
-| test-hono-factory-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
+| test-hono-factory-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |

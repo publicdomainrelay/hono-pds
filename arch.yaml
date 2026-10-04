@@ -673,5 +673,22 @@ system_contexts:
   upstream: self
   depends_on:
   - sc.hono-pds
+  requirements:
+  - id: r.e2e-create-record-returns-uri-and-cid
+    level: MUST
+  - id: r.e2e-describe-repo-lists-collections
+    level: MUST
+  - id: r.e2e-factory-standup-in-memory
+    level: MUST
+  - id: r.e2e-get-record-returns-stored-value
+    level: MUST
+  - id: r.e2e-list-records-paginates
+    level: MUST
+  - id: r.e2e-service-auth-token-per-request
+    level: MUST
+  - id: r.e2e-subscribe-emits-sequenced-frame
+    level: MUST
+  - id: r.e2e-write-cid-is-record-cid
+    level: MUST
   codeRefIndex:
   - file:test/hono-factory/e2e_test.ts e2e_test.ts@test/hono-factory/e2e_test.ts
