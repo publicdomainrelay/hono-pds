@@ -10,6 +10,7 @@ spec:
   - deno
   - task
   - test
+  - --no-lock
   populate:
     partition: directory
     summarize: true
