@@ -1,0 +1,16 @@
+apiVersion: specs.publicdomainrelay.dev/v1alpha1
+kind: SystemContext
+metadata:
+  name: test-conformance
+  namespace: default
+spec:
+  repository: hono-pds
+  upstream: self
+  dependsOn:
+  - sc.hono-pds
+codeRefIndex:
+- file:test/conformance/commit-conformance.test.ts commit-conformance.test.ts@test/conformance/commit-conformance.test.ts
+- file:test/conformance/crud-conformance.test.ts crud-conformance.test.ts@test/conformance/crud-conformance.test.ts
+- file:test/conformance/docs-compliance.test.ts docs-compliance.test.ts@test/conformance/docs-compliance.test.ts
+- file:test/conformance/firehose-conformance.test.ts firehose-conformance.test.ts@test/conformance/firehose-conformance.test.ts
+- file:test/conformance/sandbox-conformance.test.ts sandbox-conformance.test.ts@test/conformance/sandbox-conformance.test.ts

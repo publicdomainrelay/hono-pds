@@ -1,0 +1,24 @@
+syncedFingerprint: b6603143a5b8ccc4972643f37a1613c44e566db3b6edf4daf6a97614500764d2
+realizedSpecHash: db4024dd715da0aeac6548f6131426bfd0cc5d87102739954d92eafb22753469
+conditions:
+- type: CodeSynced
+  status: "True"
+  reason: InterfacesObserved
+  message: every declared interface is observed, nothing undeclared is exported and
+    every requirement code ref resolves
+- type: Drifted
+  status: "False"
+  reason: FingerprintEqual
+  message: observed facts match the synced fingerprint
+- type: SpecValid
+  status: "True"
+  reason: ValidatorPassed
+  message: the spec passes the validator
+observed:
+  files:
+  - test/conformance/commit-conformance.test.ts
+  - test/conformance/crud-conformance.test.ts
+  - test/conformance/docs-compliance.test.ts
+  - test/conformance/firehose-conformance.test.ts
+  - test/conformance/sandbox-conformance.test.ts
+  fingerprint: b6603143a5b8ccc4972643f37a1613c44e566db3b6edf4daf6a97614500764d2

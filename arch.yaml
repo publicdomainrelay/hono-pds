@@ -143,3 +143,23 @@ system_contexts:
   - file:test/common/dag-cbor_test.ts dag-cbor_test.ts@test/common/dag-cbor_test.ts
   - file:test/common/drisl_cbor_test.ts drisl_cbor_test.ts@test/common/drisl_cbor_test.ts
   - file:test/common/tid_test.ts tid_test.ts@test/common/tid_test.ts
+- id: sc.test-conformance
+  name: test-conformance
+  spec: specs/test-conformance.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:test/conformance/commit-conformance.test.ts commit-conformance.test.ts@test/conformance/commit-conformance.test.ts
+  - file:test/conformance/crud-conformance.test.ts crud-conformance.test.ts@test/conformance/crud-conformance.test.ts
+  - file:test/conformance/docs-compliance.test.ts docs-compliance.test.ts@test/conformance/docs-compliance.test.ts
+  - file:test/conformance/firehose-conformance.test.ts firehose-conformance.test.ts@test/conformance/firehose-conformance.test.ts
+  - file:test/conformance/sandbox-conformance.test.ts sandbox-conformance.test.ts@test/conformance/sandbox-conformance.test.ts
+- id: sc.test-hono-factory
+  name: test-hono-factory
+  spec: specs/test-hono-factory.yaml
+  upstream: self
+  depends_on:
+  - sc.hono-pds
+  codeRefIndex:
+  - file:test/hono-factory/e2e_test.ts e2e_test.ts@test/hono-factory/e2e_test.ts

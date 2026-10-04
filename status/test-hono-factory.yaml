@@ -1,5 +1,5 @@
-syncedFingerprint: ba9e9097134371caa9047876f73361a18d24c474f9e386f0472c2cc8a1ec0079
-realizedSpecHash: 08badf262d4f5ef9dd124be8fcb63e11738c00ad245cfb02158fe1e9c2e43ac5
+syncedFingerprint: ea5de170d15b0268e6666811b3c0d354980a50cca84abc280a78995904cf44a0
+realizedSpecHash: 699188535ca9ee771f4442922b756b754b4814375f5f1b8cee3b0523477d2d08
 conditions:
 - type: CodeSynced
   status: "True"
@@ -16,9 +16,5 @@ conditions:
   message: the spec passes the validator
 observed:
   files:
-  - test/common/bytes_test.ts
-  - test/common/cid_test.ts
-  - test/common/dag-cbor_test.ts
-  - test/common/drisl_cbor_test.ts
-  - test/common/tid_test.ts
-  fingerprint: ba9e9097134371caa9047876f73361a18d24c474f9e386f0472c2cc8a1ec0079
+  - test/hono-factory/e2e_test.ts
+  fingerprint: ea5de170d15b0268e6666811b3c0d354980a50cca84abc280a78995904cf44a0
