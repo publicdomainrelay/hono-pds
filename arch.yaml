@@ -204,16 +204,86 @@ system_contexts:
   upstream: self
   depends_on:
   - sc.hono-pds
+  requirements:
+  - id: r.account-store
+    level: MUST
+  - id: r.car-export
+    level: MUST
+  - id: r.car-import
+    level: MUST
+  - id: r.deno-kv-storage
+    level: MUST
+  - id: r.indexeddb-storage
+    level: MUST
+  - id: r.memory-storage
+    level: MUST
+  - id: r.module-surface
+    level: SHOULD
+  - id: r.repo-construction
+    level: MUST
+  - id: r.repo-reads
+    level: MUST
+  - id: r.service-auth-sign
+    level: MUST
+  - id: r.service-auth-verify
+    level: MUST
+  - id: r.signer-factories
+    level: MUST
+  - id: r.storage-contract
+    level: MUST
   codeRefIndex:
+  - class:2ec5a9ace354dde4dc09fbe7f899b52d Repo@lib/atproto-repo-deno/repo.ts:81
+  - class:900132c026ae2899422c8e1d504ed2ad DenoKvStorage@lib/atproto-repo-deno/deno-kv-storage.ts:3
+  - class:ab614785501d1fa9e92a1f480160e0b1 IndexedDbStorage@lib/atproto-repo-deno/indexeddb-storage.ts:46
+  - class:fcc00cb42cf9a5f08a6a047fef8c7cd5 MemoryStorage@lib/atproto-repo-deno/memory-storage.ts:3
   - file:lib/atproto-repo-deno/account-store.ts account-store.ts@lib/atproto-repo-deno/account-store.ts
   - file:lib/atproto-repo-deno/car.ts car.ts@lib/atproto-repo-deno/car.ts
   - file:lib/atproto-repo-deno/deno-kv-storage.ts deno-kv-storage.ts@lib/atproto-repo-deno/deno-kv-storage.ts
+  - file:lib/atproto-repo-deno/deno.json deno.json@lib/atproto-repo-deno/deno.json
   - file:lib/atproto-repo-deno/indexeddb-storage.ts indexeddb-storage.ts@lib/atproto-repo-deno/indexeddb-storage.ts
   - file:lib/atproto-repo-deno/memory-storage.ts memory-storage.ts@lib/atproto-repo-deno/memory-storage.ts
   - file:lib/atproto-repo-deno/mod.ts mod.ts@lib/atproto-repo-deno/mod.ts
   - file:lib/atproto-repo-deno/repo.ts repo.ts@lib/atproto-repo-deno/repo.ts
   - file:lib/atproto-repo-deno/service-auth.ts service-auth.ts@lib/atproto-repo-deno/service-auth.ts
   - file:lib/atproto-repo-deno/signer.ts signer.ts@lib/atproto-repo-deno/signer.ts
+  - function:06e7ca4348a3e4f0d985f3502c754f17 signerFromPrivateKeyHex@lib/atproto-repo-deno/signer.ts:15
+  - function:2f89c606ae5e1b54b5c7fe0157160ba0 signerFromKeypair@lib/atproto-repo-deno/signer.ts:4
+  - function:614b56ba7a356b0d07d1c49c98255ccc verifierFromKeypair@lib/atproto-repo-deno/signer.ts:28
+  - function:b68f2d498225520650b7f337a28b4e7b createVerifier@lib/atproto-repo-deno/signer.ts:20
+  - function:bbf87f02c552d289a5635b9002d7c4a5 verifyServiceAuthToken@lib/atproto-repo-deno/service-auth.ts:73
+  - function:bf75ebd3ed0c15cebd48c93df4e0c08f exportCar@lib/atproto-repo-deno/car.ts:81
+  - function:d1aa3833f729ad382a2349c5ff9d0b90 importCar@lib/atproto-repo-deno/car.ts:105
+  - function:f11aecc30653d50d6ac86f5d953ad4e3 signServiceAuth@lib/atproto-repo-deno/service-auth.ts:18
+  - interface:1c680c3bde2f864d734d712749874f48 CarBlock@lib/atproto-repo-deno/car.ts:100
+  - interface:917aa49d7556f04395e50ef78ffea4a9 ServiceAuthOptions@lib/atproto-repo-deno/service-auth.ts:12
+  - interface:97e164168cae0b7db41098de66ca12c1 AccountRecord@lib/atproto-repo-deno/account-store.ts:29
+  - interface:c6a5e87a7a04735ed8077142c0b7ec37 VerifyServiceAuthOptions@lib/atproto-repo-deno/service-auth.ts:64
+  - interface:c7b8ac06d88fe59259003d958ab76de7 AccountStore@lib/atproto-repo-deno/account-store.ts:38
+  - method:09d5ff902fe131e56e15ae79cf0e34b8 Repo.listRecords@lib/atproto-repo-deno/repo.ts:140
+  - method:13d90ea0508c01245c5bd60bc12bb3bc MemoryStorage.has@lib/atproto-repo-deno/memory-storage.ts:15
+  - method:18f8ebd803ee5493235b54b18309d232 DenoKvStorage.setHead@lib/atproto-repo-deno/deno-kv-storage.ts:43
+  - method:374e6fc5f69255fb1b76ae6d6d0c3d16 MemoryStorage.put@lib/atproto-repo-deno/memory-storage.ts:11
+  - method:393a521a81ce73ee6b607245d6131434 DenoKvStorage.getHead@lib/atproto-repo-deno/deno-kv-storage.ts:38
+  - method:47827d3680f72ed5e570912637954038 DenoKvStorage.put@lib/atproto-repo-deno/deno-kv-storage.ts:29
+  - method:4a983388c7216cc2940f56ce4399fc23 MemoryStorage.getHead@lib/atproto-repo-deno/memory-storage.ts:19
+  - method:4bbd2ad23f28f45e3743eb117062f72d DenoKvStorage.has@lib/atproto-repo-deno/deno-kv-storage.ts:33
+  - method:55a498f1563c27058c34d2adf3667417 DenoKvStorage.close@lib/atproto-repo-deno/deno-kv-storage.ts:47
+  - method:5895656e6e5869b86dd23a86ad73f953 Repo.getRecord@lib/atproto-repo-deno/repo.ts:116
+  - method:59a2f48e4034cc7f1d986cef644edd34 Repo.did@lib/atproto-repo-deno/repo.ts:93
+  - method:5d168db0bb1ffd0b0a82319541bf5d3c IndexedDbStorage.getHead@lib/atproto-repo-deno/indexeddb-storage.ts:104
+  - method:6db395c8cf41c05f9fed9c167da2a10e Repo.describe@lib/atproto-repo-deno/repo.ts:97
+  - method:6e9f02d0bdb31ee0beab549b4ebead47 IndexedDbStorage.create@lib/atproto-repo-deno/indexeddb-storage.ts:53
+  - method:73128a372db5ced9cd73eb7eb1d91cc1 Repo.applyWrites@lib/atproto-repo-deno/repo.ts:183
+  - method:76ce1d0b8e89fdc8bf7c53c23778cc1a IndexedDbStorage.setHead@lib/atproto-repo-deno/indexeddb-storage.ts:118
+  - method:76face40c454a4c22db1103b77f0192d IndexedDbStorage.put@lib/atproto-repo-deno/indexeddb-storage.ts:89
+  - method:83705247f8ddbca0f99c8d6728b8d5dc IndexedDbStorage.has@lib/atproto-repo-deno/indexeddb-storage.ts:99
+  - method:8ac32f60eb5a2e1dc398b91681dd1a98 MemoryStorage.setHead@lib/atproto-repo-deno/memory-storage.ts:23
+  - method:97b2de6d5d6e899cada2cbc294041724 IndexedDbStorage.get@lib/atproto-repo-deno/indexeddb-storage.ts:76
+  - method:99bf6a25ea6dc545264a8e7c1d58377a MemoryStorage.get@lib/atproto-repo-deno/memory-storage.ts:7
+  - method:9bec2fd3aa425a31ea41a5290904ad36 MemoryStorage.close@lib/atproto-repo-deno/memory-storage.ts:27
+  - method:9e2c373ee53fae0c69d215af81459c34 DenoKvStorage.get@lib/atproto-repo-deno/deno-kv-storage.ts:24
+  - method:b2be5dc3db8be6b4c07f524b1d04f298 DenoKvStorage.create@lib/atproto-repo-deno/deno-kv-storage.ts:10
+  - method:c227104ab246d619ccc784ead73cb379 Repo.constructor@lib/atproto-repo-deno/repo.ts:87
 - id: sc.lib-common
   name: lib-common
   spec: specs/lib-common.yaml

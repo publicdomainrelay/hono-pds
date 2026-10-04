@@ -1,19 +1,11 @@
 syncedFingerprint: 1923f0c542bcdcae4b109351dbf2cb6a8f76810c8f2807ecdf791a3876393ea1
-realizedSpecHash: 68efb6cee9752a36149e14df8e642f1b0828c9396e6131e1b392b3f393e57b4d
+realizedSpecHash: e45f3b10d3e1985fe8fe2ff2a2458a767693eaea3979af78f0190393811315ad
 conditions:
 - type: CodeSynced
-  status: "False"
-  reason: InterfacesMissing
-  message: 'undeclared: AccountRecord, AccountStore, CarBlock, DenoKvStorage, DenoKvStorage.close,
-    DenoKvStorage.create, DenoKvStorage.get, DenoKvStorage.getHead, DenoKvStorage.has,
-    DenoKvStorage.put, DenoKvStorage.setHead, IndexedDbStorage, IndexedDbStorage.create,
-    IndexedDbStorage.get, IndexedDbStorage.getHead, IndexedDbStorage.has, IndexedDbStorage.put,
-    IndexedDbStorage.setHead, MemoryStorage, MemoryStorage.close, MemoryStorage.get,
-    MemoryStorage.getHead, MemoryStorage.has, MemoryStorage.put, MemoryStorage.setHead,
-    Repo, Repo.applyWrites, Repo.constructor, Repo.describe, Repo.did, Repo.getRecord,
-    Repo.listRecords, ServiceAuthOptions, VerifyServiceAuthOptions, createVerifier,
-    exportCar, importCar, signServiceAuth, signerFromKeypair, signerFromPrivateKeyHex,
-    verifierFromKeypair, verifyServiceAuthToken'
+  status: "True"
+  reason: InterfacesObserved
+  message: every declared interface is observed, nothing undeclared is exported and
+    every requirement code ref resolves
 - type: Drifted
   status: "False"
   reason: FingerprintEqual

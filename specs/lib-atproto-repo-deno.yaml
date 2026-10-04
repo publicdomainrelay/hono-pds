@@ -8,13 +8,404 @@ spec:
   upstream: self
   dependsOn:
   - sc.hono-pds
+  intent: 'This context exists so the rest of the monorepo (notably the Hono factory
+    and sync handlers) can depend on a single, portable atproto repository implementation
+    without caring which persistence engine is underneath. The Storage contract is
+    the seam: the same Repo, CAR, and service-auth code runs against in-memory, Deno
+    KV, or browser IndexedDB storage. It also centralizes the crypto boundary, giving
+    callers a Signer/Verifier pair derived from a secp256k1 keypair or a hex private
+    key, and a service-auth token format used for inter-service atproto calls.'
+  requirements:
+  - id: r.account-store
+    level: MUST
+    text: 'AccountStore defines the account surface the factory consumes: createAccount
+      accepts optional handle, email, password, didOverride, and signerOverride and
+      returns the issued access and refresh JWTs together with handle, did, and signer;
+      getAccount looks an AccountRecord up by handle or Did; validatePassword checks
+      a password; createSessionTokens mints a token pair for a Did and handle; and
+      validateAccessJwt and validateRefreshJwt each resolve to { did, handle } or
+      null. AccountRecord carries did, handle, passwordHash, passwordSalt, optional
+      email, and a numeric createdAt.'
+    codeRefs:
+    - file:lib/atproto-repo-deno/account-store.ts
+    - interface:97e164168cae0b7db41098de66ca12c1
+    - interface:c7b8ac06d88fe59259003d958ab76de7
+  - id: r.car-export
+    level: MUST
+    text: 'exportCar walks every block reachable from rootCid, writes a CBOR-encoded
+      CARv1 header of { roots: [rootCid], version: 1 } prefixed with its varint length,
+      then appends each block as a varint length followed by the raw CID bytes concatenated
+      with the block bytes, returning the assembled CAR as Bytes.'
+    codeRefs:
+    - file:lib/atproto-repo-deno/car.ts
+    - function:bf75ebd3ed0c15cebd48c93df4e0c08f
+  - id: r.car-import
+    level: MUST
+    text: importCar reads the varint-prefixed CBOR header to recover the roots array,
+      then iterates the remaining bytes reading varint block lengths and splitting
+      each block into a fixed 36-byte CIDv1 prefix and the trailing data, returning
+      { roots, blocks }. A block shorter than the CID prefix must raise an error naming
+      the byte count, and a varint shift beyond 63 bits must raise a too-long error.
+    codeRefs:
+    - file:lib/atproto-repo-deno/car.ts
+    - function:d1aa3833f729ad382a2349c5ff9d0b90
+    - interface:1c680c3bde2f864d734d712749874f48
+  - id: r.deno-kv-storage
+    level: MUST
+    text: DenoKvStorage opens Deno KV through the async factory create(path?), defaulting
+      to the runtime's default KV location when no path is given, and stores blocks
+      and heads in it; close() releases the KV handle. Callers must use create rather
+      than a constructor.
+    codeRefs:
+    - class:900132c026ae2899422c8e1d504ed2ad
+    - method:18f8ebd803ee5493235b54b18309d232
+    - method:393a521a81ce73ee6b607245d6131434
+    - method:47827d3680f72ed5e570912637954038
+    - method:4bbd2ad23f28f45e3743eb117062f72d
+    - method:55a498f1563c27058c34d2adf3667417
+    - method:9e2c373ee53fae0c69d215af81459c34
+    - method:b2be5dc3db8be6b4c07f524b1d04f298
+  - id: r.indexeddb-storage
+    level: MUST
+    text: IndexedDbStorage opens the browser database through the async factory create()
+      and implements the same block and head operations plus setHead for persisting
+      a Did's current commit Cid and rev Tid, so the same Repo code can run in a browser
+      tab.
+    codeRefs:
+    - class:ab614785501d1fa9e92a1f480160e0b1
+    - method:5d168db0bb1ffd0b0a82319541bf5d3c
+    - method:6e9f02d0bdb31ee0beab549b4ebead47
+    - method:76ce1d0b8e89fdc8bf7c53c23778cc1a
+    - method:76face40c454a4c22db1103b77f0192d
+    - method:83705247f8ddbca0f99c8d6728b8d5dc
+    - method:97b2de6d5d6e899cada2cbc294041724
+  - id: r.memory-storage
+    level: MUST
+    text: MemoryStorage keeps blocks and heads in process memory behind get, put,
+      has, getHead, setHead, and close, making it the zero-dependency backend used
+      for tests and ephemeral repos.
+    codeRefs:
+    - class:fcc00cb42cf9a5f08a6a047fef8c7cd5
+    - method:13d90ea0508c01245c5bd60bc12bb3bc
+    - method:374e6fc5f69255fb1b76ae6d6d0c3d16
+    - method:4a983388c7216cc2940f56ce4399fc23
+    - method:8ac32f60eb5a2e1dc398b91681dd1a98
+    - method:99bf6a25ea6dc545264a8e7c1d58377a
+    - method:9bec2fd3aa425a31ea41a5290904ad36
+  - id: r.module-surface
+    level: SHOULD
+    text: mod.ts re-exports the package's public surface so consumers import the repo,
+      storages, CAR helpers, signer, and service-auth from one entrypoint, and deno.json
+      declares the package manifest.
+    codeRefs:
+    - file:lib/atproto-repo-deno/deno.json
+    - file:lib/atproto-repo-deno/mod.ts
+  - id: r.repo-construction
+    level: MUST
+    text: Repo is constructed from a Storage, a Signer, and an optional Did; when
+      the Did is omitted it defaults to signer.did(). The did accessor returns that
+      identity, and applyWrites serializes concurrent writes per Did through an internal
+      write-queue map keyed by Did rather than allowing interleaved commits.
+    codeRefs:
+    - class:2ec5a9ace354dde4dc09fbe7f899b52d
+    - method:59a2f48e4034cc7f1d986cef644edd34
+    - method:73128a372db5ced9cd73eb7eb1d91cc1
+    - method:c227104ab246d619ccc784ead73cb379
+  - id: r.repo-reads
+    level: MUST
+    text: 'Repo reads resolve through the stored head: describe returns an empty collection
+      list with a null head when no head exists, otherwise it initializes the MST
+      at the head''s commit root and returns the distinct collection prefixes of every
+      key (text before the first slash), sorted, alongside the head rev. getRecord
+      returns null without a head or MST root, otherwise the {uri, cid, value} triple
+      for the collection/rkey key, and listRecords returns a page of such records
+      with an optional cursor honoring the limit and cursor options.'
+    codeRefs:
+    - file:lib/atproto-repo-deno/repo.ts
+    - method:09d5ff902fe131e56e15ae79cf0e34b8
+    - method:5895656e6e5869b86dd23a86ad73f953
+    - method:6db395c8cf41c05f9fed9c167da2a10e
+  - id: r.service-auth-sign
+    level: MUST
+    text: signServiceAuth takes a Signer and ServiceAuthOptions and returns a signed
+      service-auth JWT string that can be attached to inter-service atproto requests.
+    codeRefs:
+    - file:lib/atproto-repo-deno/service-auth.ts
+    - function:f11aecc30653d50d6ac86f5d953ad4e3
+    - interface:917aa49d7556f04395e50ef78ffea4a9
+  - id: r.service-auth-verify
+    level: MUST
+    text: verifyServiceAuthToken validates a service-auth token against VerifyServiceAuthOptions
+      and resolves to { iss } for the issuing Did when the token verifies, or to null
+      when it does not, so callers can treat any failure uniformly.
+    codeRefs:
+    - file:lib/atproto-repo-deno/service-auth.ts
+    - function:bbf87f02c552d289a5635b9002d7c4a5
+    - interface:c6a5e87a7a04735ed8077142c0b7ec37
+  - id: r.signer-factories
+    level: MUST
+    text: 'Signer and Verifier values are produced only through the factories: signerFromKeypair
+      wraps an existing secp256k1 keypair directly, signerFromPrivateKeyHex asynchronously
+      derives one from a hex private key, createVerifier builds a fresh verifier,
+      and verifierFromKeypair derives a verifier from a keypair. These are the crypto
+      boundary the repo and service-auth layers consume.'
+    codeRefs:
+    - file:lib/atproto-repo-deno/signer.ts
+    - function:06e7ca4348a3e4f0d985f3502c754f17
+    - function:2f89c606ae5e1b54b5c7fe0157160ba0
+    - function:614b56ba7a356b0d07d1c49c98255ccc
+    - function:b68f2d498225520650b7f337a28b4e7b
+  - id: r.storage-contract
+    level: MUST
+    text: 'Every storage backend exposes the same contract: get(cid) returns the stored
+      bytes or null, put(cid, bytes) persists content-addressed blocks, has(cid) reports
+      existence, getHead(did) returns the current {commit, rev} head or null, and
+      setHead(did, head) records it. MemoryStorage, DenoKvStorage, and IndexedDbStorage
+      each implement this so any of them can be handed to Repo, exportCar, or the
+      MST layer unchanged.'
+    codeRefs:
+    - file:lib/atproto-repo-deno/deno-kv-storage.ts
+    - file:lib/atproto-repo-deno/indexeddb-storage.ts
+    - file:lib/atproto-repo-deno/memory-storage.ts
+  interfaces:
+  - name: AccountRecord
+    kind: interface
+    signature: 'interface AccountRecord { did: Did; handle: string; passwordHash:
+      string; passwordSalt: string; email?: string; createdAt: number }'
+    file: lib/atproto-repo-deno/account-store.ts
+  - name: AccountStore
+    kind: interface
+    signature: 'interface AccountStore { createAccount(opts: { handle?: string; email?:
+      string; password?: string; didOverride?: Did; signerOverride?: Signer }): Promise<{
+      accessJwt: string; refreshJwt: string; handle: string; did: Did; signer: Signer
+      }>; getAccount(handleOrDid: string): AccountRecord | undefined; validatePassword(handleOrDid:
+      string, password: string): Promise<boolean>; createSessionTokens(did: Did, handle:
+      string): Promise<{ accessJwt: string; refreshJwt: string }>; validateAccessJwt(token:
+      string): Promise<{ did: Did; handle: string } | null>; validateRefreshJwt(token:
+      string): Promise<{ did: Did; handle: string } | null> }'
+    file: lib/atproto-repo-deno/account-store.ts
+  - name: CarBlock
+    kind: interface
+    signature: 'interface CarBlock { cid: Cid; bytes: Bytes }'
+    file: lib/atproto-repo-deno/car.ts
+  - name: DenoKvStorage
+    kind: class
+    signature: class DenoKvStorage
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+  - name: DenoKvStorage.close
+    kind: method
+    signature: 'DenoKvStorage.close(): void'
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+  - name: DenoKvStorage.create
+    kind: method
+    signature: 'DenoKvStorage.create(path?: string): Promise<DenoKvStorage>'
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+  - name: DenoKvStorage.get
+    kind: method
+    signature: 'DenoKvStorage.get(cid: Cid): Promise<Bytes | null>'
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+  - name: DenoKvStorage.getHead
+    kind: method
+    signature: 'DenoKvStorage.getHead(did: Did): Promise<{ commit: Cid; rev: Tid }
+      | null>'
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+  - name: DenoKvStorage.has
+    kind: method
+    signature: 'DenoKvStorage.has(cid: Cid): Promise<boolean>'
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+  - name: DenoKvStorage.put
+    kind: method
+    signature: 'DenoKvStorage.put(cid: Cid, bytes: Bytes): Promise<void>'
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+  - name: DenoKvStorage.setHead
+    kind: method
+    signature: 'DenoKvStorage.setHead(did: Did, head: { commit: Cid; rev: Tid }):
+      Promise<void>'
+    file: lib/atproto-repo-deno/deno-kv-storage.ts
+  - name: IndexedDbStorage
+    kind: class
+    signature: class IndexedDbStorage
+    file: lib/atproto-repo-deno/indexeddb-storage.ts
+  - name: IndexedDbStorage.create
+    kind: method
+    signature: 'IndexedDbStorage.create(): Promise<IndexedDbStorage>'
+    file: lib/atproto-repo-deno/indexeddb-storage.ts
+  - name: IndexedDbStorage.get
+    kind: method
+    signature: 'IndexedDbStorage.get(cid: Cid): Promise<Bytes | null>'
+    file: lib/atproto-repo-deno/indexeddb-storage.ts
+  - name: IndexedDbStorage.getHead
+    kind: method
+    signature: 'IndexedDbStorage.getHead(did: Did): Promise<{ commit: Cid; rev: Tid
+      } | null>'
+    file: lib/atproto-repo-deno/indexeddb-storage.ts
+  - name: IndexedDbStorage.has
+    kind: method
+    signature: 'IndexedDbStorage.has(cid: Cid): Promise<boolean>'
+    file: lib/atproto-repo-deno/indexeddb-storage.ts
+  - name: IndexedDbStorage.put
+    kind: method
+    signature: 'IndexedDbStorage.put(cid: Cid, bytes: Bytes): Promise<void>'
+    file: lib/atproto-repo-deno/indexeddb-storage.ts
+  - name: IndexedDbStorage.setHead
+    kind: method
+    signature: 'IndexedDbStorage.setHead(did: Did, head: { commit: Cid; rev: Tid }):
+      Promise<void>'
+    file: lib/atproto-repo-deno/indexeddb-storage.ts
+  - name: MemoryStorage
+    kind: class
+    signature: class MemoryStorage
+    file: lib/atproto-repo-deno/memory-storage.ts
+  - name: MemoryStorage.close
+    kind: method
+    signature: 'MemoryStorage.close(): void'
+    file: lib/atproto-repo-deno/memory-storage.ts
+  - name: MemoryStorage.get
+    kind: method
+    signature: 'MemoryStorage.get(cid: Cid): Promise<Bytes | null>'
+    file: lib/atproto-repo-deno/memory-storage.ts
+  - name: MemoryStorage.getHead
+    kind: method
+    signature: 'MemoryStorage.getHead(did: Did): Promise<{ commit: Cid; rev: Tid }
+      | null>'
+    file: lib/atproto-repo-deno/memory-storage.ts
+  - name: MemoryStorage.has
+    kind: method
+    signature: 'MemoryStorage.has(cid: Cid): Promise<boolean>'
+    file: lib/atproto-repo-deno/memory-storage.ts
+  - name: MemoryStorage.put
+    kind: method
+    signature: 'MemoryStorage.put(cid: Cid, bytes: Bytes): Promise<void>'
+    file: lib/atproto-repo-deno/memory-storage.ts
+  - name: MemoryStorage.setHead
+    kind: method
+    signature: 'MemoryStorage.setHead(did: Did, head: { commit: Cid; rev: Tid }):
+      Promise<void>'
+    file: lib/atproto-repo-deno/memory-storage.ts
+  - name: Repo
+    kind: class
+    signature: class Repo implements RepoApi
+    file: lib/atproto-repo-deno/repo.ts
+  - name: Repo.applyWrites
+    kind: method
+    signature: 'Repo.applyWrites(_did: Did, writes: WriteOp[]): Promise<CommitEvent>'
+    file: lib/atproto-repo-deno/repo.ts
+  - name: Repo.constructor
+    kind: method
+    signature: 'Repo.constructor(store: Storage, signer: Signer, did?: Did)'
+    file: lib/atproto-repo-deno/repo.ts
+  - name: Repo.describe
+    kind: method
+    signature: 'Repo.describe(_did: Did): Promise<{ collections: string[]; head: Tid
+      | null }>'
+    file: lib/atproto-repo-deno/repo.ts
+  - name: Repo.did
+    kind: method
+    signature: 'Repo.did(): Did'
+    file: lib/atproto-repo-deno/repo.ts
+  - name: Repo.getRecord
+    kind: method
+    signature: 'Repo.getRecord(_did: Did, collection: string, rkey: string): Promise<{
+      uri: string; cid: Cid; value: unknown } | null>'
+    file: lib/atproto-repo-deno/repo.ts
+  - name: Repo.listRecords
+    kind: method
+    signature: 'Repo.listRecords(_did: Did, collection: string, opts?: { limit?: number;
+      cursor?: string }): Promise<{ records: { uri: string; cid: Cid; value: unknown
+      }[]; cursor?: string }>'
+    file: lib/atproto-repo-deno/repo.ts
+  - name: ServiceAuthOptions
+    kind: interface
+    signature: interface ServiceAuthOptions
+    file: lib/atproto-repo-deno/service-auth.ts
+  - name: VerifyServiceAuthOptions
+    kind: interface
+    signature: interface VerifyServiceAuthOptions
+    file: lib/atproto-repo-deno/service-auth.ts
+  - name: createVerifier
+    kind: function
+    signature: 'createVerifier(): Verifier'
+    file: lib/atproto-repo-deno/signer.ts
+  - name: exportCar
+    kind: function
+    signature: 'exportCar(store: Storage, rootCid: Cid): Promise<Bytes>'
+    file: lib/atproto-repo-deno/car.ts
+  - name: importCar
+    kind: function
+    signature: 'importCar(carBytes: Bytes): Promise<{ roots: Cid[]; blocks: CarBlock[]
+      }>'
+    file: lib/atproto-repo-deno/car.ts
+  - name: signServiceAuth
+    kind: function
+    signature: 'signServiceAuth(signer: Signer, opts: ServiceAuthOptions): Promise<string>'
+    file: lib/atproto-repo-deno/service-auth.ts
+  - name: signerFromKeypair
+    kind: function
+    signature: 'signerFromKeypair(kp: Secp256k1Keypair): Signer'
+    file: lib/atproto-repo-deno/signer.ts
+  - name: signerFromPrivateKeyHex
+    kind: function
+    signature: 'signerFromPrivateKeyHex(hex: string): Promise<Signer>'
+    file: lib/atproto-repo-deno/signer.ts
+  - name: verifierFromKeypair
+    kind: function
+    signature: 'verifierFromKeypair(_kp: Secp256k1Keypair): Verifier'
+    file: lib/atproto-repo-deno/signer.ts
+  - name: verifyServiceAuthToken
+    kind: function
+    signature: 'verifyServiceAuthToken(token: string, opts: VerifyServiceAuthOptions):
+      Promise<{ iss: Did } | null>'
+    file: lib/atproto-repo-deno/service-auth.ts
 codeRefIndex:
+- class:2ec5a9ace354dde4dc09fbe7f899b52d Repo@lib/atproto-repo-deno/repo.ts:81
+- class:900132c026ae2899422c8e1d504ed2ad DenoKvStorage@lib/atproto-repo-deno/deno-kv-storage.ts:3
+- class:ab614785501d1fa9e92a1f480160e0b1 IndexedDbStorage@lib/atproto-repo-deno/indexeddb-storage.ts:46
+- class:fcc00cb42cf9a5f08a6a047fef8c7cd5 MemoryStorage@lib/atproto-repo-deno/memory-storage.ts:3
 - file:lib/atproto-repo-deno/account-store.ts account-store.ts@lib/atproto-repo-deno/account-store.ts
 - file:lib/atproto-repo-deno/car.ts car.ts@lib/atproto-repo-deno/car.ts
 - file:lib/atproto-repo-deno/deno-kv-storage.ts deno-kv-storage.ts@lib/atproto-repo-deno/deno-kv-storage.ts
+- file:lib/atproto-repo-deno/deno.json deno.json@lib/atproto-repo-deno/deno.json
 - file:lib/atproto-repo-deno/indexeddb-storage.ts indexeddb-storage.ts@lib/atproto-repo-deno/indexeddb-storage.ts
 - file:lib/atproto-repo-deno/memory-storage.ts memory-storage.ts@lib/atproto-repo-deno/memory-storage.ts
 - file:lib/atproto-repo-deno/mod.ts mod.ts@lib/atproto-repo-deno/mod.ts
 - file:lib/atproto-repo-deno/repo.ts repo.ts@lib/atproto-repo-deno/repo.ts
 - file:lib/atproto-repo-deno/service-auth.ts service-auth.ts@lib/atproto-repo-deno/service-auth.ts
 - file:lib/atproto-repo-deno/signer.ts signer.ts@lib/atproto-repo-deno/signer.ts
+- function:06e7ca4348a3e4f0d985f3502c754f17 signerFromPrivateKeyHex@lib/atproto-repo-deno/signer.ts:15
+- function:2f89c606ae5e1b54b5c7fe0157160ba0 signerFromKeypair@lib/atproto-repo-deno/signer.ts:4
+- function:614b56ba7a356b0d07d1c49c98255ccc verifierFromKeypair@lib/atproto-repo-deno/signer.ts:28
+- function:b68f2d498225520650b7f337a28b4e7b createVerifier@lib/atproto-repo-deno/signer.ts:20
+- function:bbf87f02c552d289a5635b9002d7c4a5 verifyServiceAuthToken@lib/atproto-repo-deno/service-auth.ts:73
+- function:bf75ebd3ed0c15cebd48c93df4e0c08f exportCar@lib/atproto-repo-deno/car.ts:81
+- function:d1aa3833f729ad382a2349c5ff9d0b90 importCar@lib/atproto-repo-deno/car.ts:105
+- function:f11aecc30653d50d6ac86f5d953ad4e3 signServiceAuth@lib/atproto-repo-deno/service-auth.ts:18
+- interface:1c680c3bde2f864d734d712749874f48 CarBlock@lib/atproto-repo-deno/car.ts:100
+- interface:917aa49d7556f04395e50ef78ffea4a9 ServiceAuthOptions@lib/atproto-repo-deno/service-auth.ts:12
+- interface:97e164168cae0b7db41098de66ca12c1 AccountRecord@lib/atproto-repo-deno/account-store.ts:29
+- interface:c6a5e87a7a04735ed8077142c0b7ec37 VerifyServiceAuthOptions@lib/atproto-repo-deno/service-auth.ts:64
+- interface:c7b8ac06d88fe59259003d958ab76de7 AccountStore@lib/atproto-repo-deno/account-store.ts:38
+- method:09d5ff902fe131e56e15ae79cf0e34b8 Repo.listRecords@lib/atproto-repo-deno/repo.ts:140
+- method:13d90ea0508c01245c5bd60bc12bb3bc MemoryStorage.has@lib/atproto-repo-deno/memory-storage.ts:15
+- method:18f8ebd803ee5493235b54b18309d232 DenoKvStorage.setHead@lib/atproto-repo-deno/deno-kv-storage.ts:43
+- method:374e6fc5f69255fb1b76ae6d6d0c3d16 MemoryStorage.put@lib/atproto-repo-deno/memory-storage.ts:11
+- method:393a521a81ce73ee6b607245d6131434 DenoKvStorage.getHead@lib/atproto-repo-deno/deno-kv-storage.ts:38
+- method:47827d3680f72ed5e570912637954038 DenoKvStorage.put@lib/atproto-repo-deno/deno-kv-storage.ts:29
+- method:4a983388c7216cc2940f56ce4399fc23 MemoryStorage.getHead@lib/atproto-repo-deno/memory-storage.ts:19
+- method:4bbd2ad23f28f45e3743eb117062f72d DenoKvStorage.has@lib/atproto-repo-deno/deno-kv-storage.ts:33
+- method:55a498f1563c27058c34d2adf3667417 DenoKvStorage.close@lib/atproto-repo-deno/deno-kv-storage.ts:47
+- method:5895656e6e5869b86dd23a86ad73f953 Repo.getRecord@lib/atproto-repo-deno/repo.ts:116
+- method:59a2f48e4034cc7f1d986cef644edd34 Repo.did@lib/atproto-repo-deno/repo.ts:93
+- method:5d168db0bb1ffd0b0a82319541bf5d3c IndexedDbStorage.getHead@lib/atproto-repo-deno/indexeddb-storage.ts:104
+- method:6db395c8cf41c05f9fed9c167da2a10e Repo.describe@lib/atproto-repo-deno/repo.ts:97
+- method:6e9f02d0bdb31ee0beab549b4ebead47 IndexedDbStorage.create@lib/atproto-repo-deno/indexeddb-storage.ts:53
+- method:73128a372db5ced9cd73eb7eb1d91cc1 Repo.applyWrites@lib/atproto-repo-deno/repo.ts:183
+- method:76ce1d0b8e89fdc8bf7c53c23778cc1a IndexedDbStorage.setHead@lib/atproto-repo-deno/indexeddb-storage.ts:118
+- method:76face40c454a4c22db1103b77f0192d IndexedDbStorage.put@lib/atproto-repo-deno/indexeddb-storage.ts:89
+- method:83705247f8ddbca0f99c8d6728b8d5dc IndexedDbStorage.has@lib/atproto-repo-deno/indexeddb-storage.ts:99
+- method:8ac32f60eb5a2e1dc398b91681dd1a98 MemoryStorage.setHead@lib/atproto-repo-deno/memory-storage.ts:23
+- method:97b2de6d5d6e899cada2cbc294041724 IndexedDbStorage.get@lib/atproto-repo-deno/indexeddb-storage.ts:76
+- method:99bf6a25ea6dc545264a8e7c1d58377a MemoryStorage.get@lib/atproto-repo-deno/memory-storage.ts:7
+- method:9bec2fd3aa425a31ea41a5290904ad36 MemoryStorage.close@lib/atproto-repo-deno/memory-storage.ts:27
+- method:9e2c373ee53fae0c69d215af81459c34 DenoKvStorage.get@lib/atproto-repo-deno/deno-kv-storage.ts:24
+- method:b2be5dc3db8be6b4c07f524b1d04f298 DenoKvStorage.create@lib/atproto-repo-deno/deno-kv-storage.ts:10
+- method:c227104ab246d619ccc784ead73cb379 Repo.constructor@lib/atproto-repo-deno/repo.ts:87

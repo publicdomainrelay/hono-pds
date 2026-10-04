@@ -2,7 +2,7 @@
 
 Repository: `hono-pds`
 
-_(empty: write what this context is for)_
+This context exists so the rest of the monorepo (notably the Hono factory and sync handlers) can depend on a single, portable atproto repository implementation without caring which persistence engine is underneath. The Storage contract is the seam: the same Repo, CAR, and service-auth code runs against in-memory, Deno KV, or browser IndexedDB storage. It also centralizes the crypto boundary, giving callers a Signer/Verifier pair derived from a secp256k1 keypair or a hex private key, and a service-auth token format used for inter-service atproto calls.
 
 _The resolved code references are regenerated on every run. Cite the ids above rather than writing them here._
 
