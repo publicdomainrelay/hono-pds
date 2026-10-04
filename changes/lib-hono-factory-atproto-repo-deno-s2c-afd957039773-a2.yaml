@@ -14,7 +14,9 @@ spec:
     requirements:
     - +r.crawler-announce-requires-a-2xx
 status:
-  phase: Pending
+  phase: Running
+  message: the agent is realizing lib-hono-factory-atproto-repo-deno in a batch of
+    2 led by lib-hono-factory-atproto-repo-deno
 superseded:
 - name: lib-hono-factory-atproto-repo-deno-s2c-afd957039773
   phase: Failed
