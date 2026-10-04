@@ -128,3 +128,4 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 | lib-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | lib-common-oauth-server-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | lib-hono-factory-atproto-repo-deno-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
+| lib-hono-factory-atproto-repo-deno-lexicons-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
