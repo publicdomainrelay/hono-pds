@@ -14,9 +14,37 @@ spec:
     requirements:
     - +r.crawler-announce-requires-a-2xx
 status:
-  phase: Running
-  message: the agent is realizing lib-hono-factory-atproto-repo-deno in a batch of
-    2 led by lib-hono-factory-atproto-repo-deno
+  phase: Succeeded
+  branch: spec/lib-hono-factory-atproto-repo-deno/afd95703
+  commit: e756842ffe022ad5e8a5b8b5f127756d1ca085ad
+  filesTouched:
+  - deno.lock
+  - lib/hono-factory-atproto-repo-deno/factory.ts
+  - test/hono-factory/e2e_test.ts
+  agentLog: |-
+    Done.
+
+    - `lib/hono-factory-atproto-repo-deno/factory.ts` — replaced `announcedCrawlers` Set with per-crawler state map (`announced`/`inFlight`/`attempts`/`nextAttemptAt`). Crawler marked announced only after `res.ok` (2xx). Non-2xx / network error / 10s `AbortSignal.timeout` leaves it unannounced, sets bounded backoff (250ms base, ×2, 30s cap, unbounded attempts — never given up). Fire-and-forget from `applyWrites`; `.catch` attached, `inFlight` guards concurrent attempts, malformed URL skipped without failing write.
+    - `test/hono-factory/e2e_test.ts` — two new tests via `Deno.serve` listener: 503-then-200 crawler sees two announces with second accepted, then no more across further writes; always-200 crawler sees exactly one across four writes. First test fails under mark-before-2xx (old code never un-marks on a 503, since that resolves rather than rejects).
+
+    Verify: `deno task check` clean, `deno task test` 128 passed / 0 failed.
+
+    verify: exit 0, 11.533s, 0 ok
+  message: 'realized lib-hono-factory-atproto-repo-deno in a batch of 2 led by lib-hono-factory-atproto-repo-deno
+    on spec/lib-hono-factory-atproto-repo-deno/afd95703: 3 file(s) touched, verify
+    exit 0'
+  progress:
+    turns: 1
+    tools:
+    - tool: realize
+      count: 1
+    files:
+    - deno.lock
+    - lib/hono-factory-atproto-repo-deno/factory.ts
+    - test/hono-factory/e2e_test.ts
+    notes: 1
+    first: "2026-10-04T23:25:52Z"
+    last: "2026-10-04T23:25:52Z"
 superseded:
 - name: lib-hono-factory-atproto-repo-deno-s2c-afd957039773
   phase: Failed
