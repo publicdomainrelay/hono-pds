@@ -14,5 +14,21 @@ spec:
     requirements:
     - ~r.e2e-crawler-announce-retries-until-2xx
 status:
-  phase: Running
-  message: the agent is realizing test-hono-factory
+  phase: Succeeded
+  branch: spec/test-hono-factory/982b51ea
+  agentLog: |-
+    Done.
+
+    **Change:** restored `deno.lock` to exactly `origin/pre-iroh` content. Test-run lock rewrite dropped (spec: not part of fix; verify step re-checkouts it anyway).
+
+    **Verified:** `deno task test --no-lock` → `128 passed | 0 failed`, exit 0. Crawler retry tests (`e2e crawler announce retries until it gets a 2xx`, `e2e crawler is announced exactly once when it accepts`) pass against existing factory logic in `lib/hono-factory-atproto-repo-deno/factory.ts` (announce marked done only on 2xx, bounded backoff otherwise) — no code change needed there.
+
+    **Files:** `deno.lock` (only).
+
+    verify: exit 0, 11.613s, 0 ok
+  message: realized test-hono-factory; the agent changed nothing, the baseline moved
+  progress:
+    turns: 1
+    notes: 2
+    first: "2026-10-04T23:43:51Z"
+    last: "2026-10-04T23:43:51Z"
