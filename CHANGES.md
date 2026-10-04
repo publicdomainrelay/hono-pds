@@ -185,6 +185,20 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 - added `r.set-overwrites` (MUST): "Calling set on an existing key replaces the prior value, so a subsequent get returns the most recently written CID rather than the first one."
 - added `r.sha256-hasher` (SHOULD): "The Hasher supplied to createMst is a SHA-256 digest over the raw byte range of the input (respecting byteOffset and byteLength), returned as a Uint8Array."
 
+### test-atproto-repo-deno
+
+- intent: "" -> "These tests exist to pin down the observable behavior of the Repo API and its storage backends so that changes to the MST, commit, or storage layers cannot silently break record durability, pagination, or head tracking. The concurrency test in particular exists because a commit is a read-modify-write over the repo head: without serialization, interleaved applyWrites build the MST from the same root and the last setHead silently drops the other's records while still reporting success. The suite is the executable contract the lib layer must satisfy."
+- added `r.denokv-storage-exported` (MUST): "The package entrypoint must export DenoKvStorage as a function value so consumers can instantiate the Deno KV backed storage."
+- added `r.repo-applywrites-actions` (MUST): "applyWrites must echo the action performed in ops[0].action for each of the create, update, and delete actions when applied in sequence to the same collection and rkey."
+- added `r.repo-concurrent-writes-preserved` (MUST): "Concurrent applyWrites calls issued via Promise.all against a single DID must serialize so that every written record remains readable afterwards, listRecords reports the full count, and each commit carries its own distinct rev rather than forking off a shared parent."
+- added `r.repo-create-get-roundtrip` (MUST): "applyWrites with action "create" must return a result carrying a non-null commit, a non-null rev, and an ops array whose single entry has action "create"; a subsequent getRecord for that collection and rkey must return the stored value with uri of the form at://<did>/<collection>/<rkey> and value deep-equal to the record that was written."
+- added `r.repo-delete-record` (MUST): "Deleting a previously created record via applyWrites with action "delete" must make a subsequent getRecord for that collection and rkey return null."
+- added `r.repo-describe-collections` (MUST): "describe must return an empty collections array and a null head for a repo with no commits, and after writes to two distinct collections must return a non-null head and the collection names sorted lexicographically."
+- added `r.repo-list-pagination` (MUST): "listRecords must honor a limit option and, when more records remain, return a non-null cursor; passing that cursor back with a larger limit must return exactly the remaining records without repeating those already returned."
+- added `r.storage-has-and-missing` (MUST): "MemoryStorage.has must return false for an unknown CID and true after a put; get for an unknown CID must return null rather than throwing."
+- added `r.storage-head-roundtrip` (MUST): "MemoryStorage.getHead must return null for a DID with no stored head, and after setHead must return a head whose commit and rev match what was set."
+- added `r.storage-put-get-roundtrip` (MUST): "MemoryStorage.get must return exactly the bytes previously stored by put for a given CID, and re-putting a CID must overwrite the prior value so that get returns the newest bytes."
+
 ## Realization
 
 | change | direction | phase | commit | verify | acceptance |
@@ -201,6 +215,6 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 | lib-hono-factory-atproto-repo-deno-lexicons-c2s-fa8920306bc4-fa8920306bc4-a2 | CodeToSpec | Succeeded |  | 0 | - |
 | scripts-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | test-abc-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
-| test-atproto-repo-deno-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
+| test-atproto-repo-deno-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | test-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | test-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |

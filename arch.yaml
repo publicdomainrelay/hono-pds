@@ -571,6 +571,27 @@ system_contexts:
   upstream: self
   depends_on:
   - sc.hono-pds
+  requirements:
+  - id: r.denokv-storage-exported
+    level: MUST
+  - id: r.repo-applywrites-actions
+    level: MUST
+  - id: r.repo-concurrent-writes-preserved
+    level: MUST
+  - id: r.repo-create-get-roundtrip
+    level: MUST
+  - id: r.repo-delete-record
+    level: MUST
+  - id: r.repo-describe-collections
+    level: MUST
+  - id: r.repo-list-pagination
+    level: MUST
+  - id: r.storage-has-and-missing
+    level: MUST
+  - id: r.storage-head-roundtrip
+    level: MUST
+  - id: r.storage-put-get-roundtrip
+    level: MUST
   codeRefIndex:
   - file:test/atproto-repo-deno/repo_test.ts repo_test.ts@test/atproto-repo-deno/repo_test.ts
   - file:test/atproto-repo-deno/storage_test.ts storage_test.ts@test/atproto-repo-deno/storage_test.ts
