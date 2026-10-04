@@ -1,14 +1,11 @@
 syncedFingerprint: be5a848feb2d34077bad4f9604100ebd048a6d0712edb4bac702d5f8e5b2e426
-realizedSpecHash: 2840fc72a1c84033bbaeb4b645fee1af0263f5855ba3b42483ea6c230cd2375c
+realizedSpecHash: 8fdebe7bd7af1a2ac1d9a52bb2910d4392387b6bf32f5a920c6d6c52c3497e67
 conditions:
 - type: CodeSynced
-  status: "False"
-  reason: InterfacesMissing
-  message: 'undeclared: AuthorizationCode, AuthorizationCodeStore, ClientMetadata,
-    NonceEntry, ParRequest, ParStore, buildHtu, cleanJwk, computeCodeChallenge, createDpopNonceStore,
-    createDpopVerifier, createMemoryAuthorizationCodeStore, createMemoryParStore,
-    createMemoryTokenStore, createSessionInjector, fetchClientMetadata, isReplayed,
-    makeToken, recordJti, verifyClientAssertion, verifyProof'
+  status: "True"
+  reason: InterfacesObserved
+  message: every declared interface is observed, nothing undeclared is exported and
+    every requirement code ref resolves
 - type: Drifted
   status: "False"
   reason: FingerprintEqual

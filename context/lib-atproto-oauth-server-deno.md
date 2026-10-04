@@ -2,7 +2,7 @@
 
 Repository: `hono-pds`
 
-_(empty: write what this context is for)_
+This context exists to specify the Deno OAuth server building blocks that hono-pds composes into its PDS: token issuance and validation, session injection, DPoP proof and nonce handling, authorization-code/PKCE, pushed authorization requests, and OAuth client metadata/assertion verification. It is the implementation side of the sc.hono-pds ABC contracts, so the requirements here define the security semantics (binding, expiry, replay, single-use) that any replacement store must preserve.
 
 _The resolved code references are regenerated on every run. Cite the ids above rather than writing them here._
 

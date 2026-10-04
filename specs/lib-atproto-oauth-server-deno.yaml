@@ -8,5 +8,280 @@ spec:
   upstream: self
   dependsOn:
   - sc.hono-pds
+  intent: 'This context exists to specify the Deno OAuth server building blocks that
+    hono-pds composes into its PDS: token issuance and validation, session injection,
+    DPoP proof and nonce handling, authorization-code/PKCE, pushed authorization requests,
+    and OAuth client metadata/assertion verification. It is the implementation side
+    of the sc.hono-pds ABC contracts, so the requirements here define the security
+    semantics (binding, expiry, replay, single-use) that any replacement store must
+    preserve.'
+  requirements:
+  - id: r.authorization-code
+    level: MUST
+    text: createMemoryAuthorizationCodeStore stores each created code as an AuthorizationCode
+      with userDid, handle, scope, codeChallenge, codeChallengeMethod, redirectUri
+      and a 300000 ms expiry under a random UUID code; validate deletes the code before
+      any further test (single use), returns null when it is unknown or expired, recomputes
+      the challenge from the presented codeVerifier and returns null on mismatch,
+      otherwise returning userDid, handle and scope.
+    codeRefs:
+    - function:242b84215f9e9e9cb9e7b6e8589cbea3
+    - interface:8b1410ffa2c29a5c565be3d35c93d0be
+    - interface:941ff5d994e672fa27a6aa403661b917
+  - id: r.clean-jwk
+    level: MUST
+    text: cleanJwk copies only the kty, crv, x and y members of a JsonWebKey, plus
+      d when it is defined, into a plain string record, so exported key material carries
+      no extra WebCrypto fields.
+    codeRefs:
+    - function:aad8bcedfc3e3c175fe265c634456f2b
+  - id: r.client-assertion
+    level: MUST
+    text: verifyClientAssertion returns false unless the assertion is a three-part
+      JWT with alg ES256 whose iss equals clientId, whose aud equals issuer, whose
+      exp has not passed, whose iat is no more than 60 seconds in the future, and
+      which carries a jti, and unless client metadata resolvable for clientId yields
+      a JWKS (inline jwks or a jwks_uri fetch returning 200) from which a key matching
+      the header kid, or the first key when no kid is given, verifies the ECDSA P-256
+      SHA-256 signature over the signing input; any exception yields false.
+    codeRefs:
+    - function:443f3ce9633059f50d36532d60f84cad
+    - function:ddd34b95468f868ce7d7a357dc7d4763
+  - id: r.client-metadata
+    level: MUST
+    text: fetchClientMetadata serves a successful result from a five minute in-memory
+      cache; on a miss it fetches the client_id URL, and returns null unless the response
+      is HTTP 200 with an application/json content-type and the document has client_id
+      equal to the requested id, a non-empty redirect_uris array, grant_types including
+      "authorization_code", a scope containing "atproto" and dpop_bound_access_tokens
+      true; it returns null on any thrown error and caches only accepted metadata.
+    codeRefs:
+    - function:ddd34b95468f868ce7d7a357dc7d4763
+    - interface:f8769aebe89cb9bcb0d5e0038f8db732
+  - id: r.dpop-htu
+    level: MUST
+    text: buildHtu strips query string and fragment from a URL and returns origin
+      concatenated with pathname, so DPoP htu comparisons ignore query and fragment.
+    codeRefs:
+    - function:56d3144953cb1a85b947ff4b02913324
+  - id: r.dpop-nonce
+    level: MUST
+    text: 'createDpopNonceStore keeps, per origin, a NonceEntry holding current, previous,
+      previousExpiresAt and expiresAt: issue rotates the existing current into previous
+      with a 30 second grace deadline and stores a fresh random UUID current with
+      a five minute expiry, and verify consumes and deletes the current nonce when
+      it matches and is unexpired, or accepts an unexpired previous nonce within the
+      grace window and consumes it, returning false for unknown or expired nonces.'
+    codeRefs:
+    - function:1bfcd465c4ca83ca6d5adb2f00052e87
+    - interface:ac2b6d06744f10d20f6fddb50f4e519b
+  - id: r.dpop-proof
+    level: MUST
+    text: verifyProof returns null unless the proof is a three-part JWT whose header
+      has typ "dpop+jwt" and alg "ES256", whose jwk is EC P-256 with string x and
+      y and no private d member, whose htm equals the uppercased request method, whose
+      htu equals buildHtu(url), whose iat is within CLOCK_SKEW_SEC (30s) of now, whose
+      ath (when present alongside an access token) equals the base64url SHA-256 of
+      that token, whose ECDSA P-256 SHA-256 signature verifies against the embedded
+      key, and whose jti is present and not already replayed; on success it records
+      the jti and returns { jkt, jti }.
+    codeRefs:
+    - function:4e3837b50f10c347dbe8b2a521d71bb3
+    - function:56d3144953cb1a85b947ff4b02913324
+    - function:71c1b1cf77d02fdc77b080fed3e55cb1
+  - id: r.dpop-replay-window
+    level: MUST
+    text: 'createDpopVerifier tracks seen jtis with a JTI_TTL_MS of five minutes:
+      isReplayed returns false and purges an entry whose deadline has passed, returns
+      true while it has not, and recordJti stamps the jti with now + JTI_TTL_MS and
+      lazily sweeps expired entries once the map exceeds 1000 entries.'
+    codeRefs:
+    - function:33a34ddb8a5223abbdb61a0649b6ec4f
+    - function:4e3837b50f10c347dbe8b2a521d71bb3
+    - function:f75bd389c3d5c6073336047a936effee
+  - id: r.par-store
+    level: MUST
+    text: 'createMemoryParStore stores each pushed request under "urn:ietf:params:oauth:request_uri:<uuid>"
+      with a 60000 ms expiry, garbage-collects expired entries on store, and its consume
+      is one-time: it deletes the entry, returns null when it is missing or expired,
+      and otherwise returns the stored ParRequest.'
+    codeRefs:
+    - function:1e0768495ca20def01007b0eeb0f1fd7
+    - interface:47d12a88d8a77df960ebf01a17b68c35
+    - interface:a6862310b08471dd38959853d5ea1341
+  - id: r.pkce-challenge
+    level: MUST
+    text: computeCodeChallenge hashes the verifier with SHA-256 and encodes the digest
+      as unhyphenated base64url with padding stripped, implementing the S256 PKCE
+      challenge used by authorization code validation.
+    codeRefs:
+    - function:099ecb227ede6aa98659442505d9af85
+  - id: r.session-injection
+    level: MUST
+    text: createSessionInjector(tokenStore, pdsUrl) generates a fresh P-256 ECDSA
+      keypair for every injectSession call, exports both JWKs, computes the jkt thumbprint
+      from the public JWK, issues DPoP-bound tokens through the token store with scope
+      defaulting to "atproto", and returns sessionData containing accessJwt, refreshJwt,
+      userDid, handle, pds = pdsUrl, and the cleaned public/private DPoP JWKs alongside
+      the live CryptoKeyPair.
+    codeRefs:
+    - function:2128d671b46fc4ff96a8430e43eca3c8
+    - function:a43bbd5584bbf3f7bd08f82a68ed0c5f
+  - id: r.token-issuance
+    level: MUST
+    text: 'createMemoryTokenStore(signer) issues an access token with a 900 second
+      lifetime and a refresh token with a 604800 second lifetime, each signed by the
+      supplied Signer as a JWT with typ at+jwt or refresh+jwt respectively, carrying
+      iss = signer.did(), sub = userDid, handle, scope defaulting to "atproto", cnf.jkt,
+      iat, exp and a fresh random UUID jti; both tokens are retained in an in-memory
+      map keyed by jti and issue() returns { accessToken, refreshToken, expiresIn:
+      900 }.'
+    codeRefs:
+    - function:a43bbd5584bbf3f7bd08f82a68ed0c5f
+    - function:f634a9429fa0b98f165e16834eaee82b
+  - id: r.token-refresh
+    level: MUST
+    text: TokenStore.refresh returns null unless the presented token decodes, is unexpired,
+      and maps to a stored entry of type "refresh" whose re-signed form equals the
+      token; on success it deletes the old jti (revocation), then issues a new access/refresh
+      pair preserving the original userDid, handle, scope and cnf.jkt.
+    codeRefs:
+    - function:a43bbd5584bbf3f7bd08f82a68ed0c5f
+    - function:f634a9429fa0b98f165e16834eaee82b
+  - id: r.token-revoke
+    level: MUST
+    text: TokenStore.revoke deletes the stored entry identified by the presented token's
+      jti and is a no-op (no error) for a token that cannot be decoded or is unknown.
+    codeRefs:
+    - function:f634a9429fa0b98f165e16834eaee82b
+  - id: r.token-validation
+    level: MUST
+    text: TokenStore.validate returns null when the access token payload cannot be
+      decoded, when jti is absent or the literal "undefined", when exp has passed,
+      when no stored entry exists for that jti or the stored entry is not of type
+      "access", or when re-signing the stored claims does not reproduce the presented
+      token; otherwise it returns sub, handle, scope defaulted to "atproto" and jkt
+      taken from cnf.jkt.
+    codeRefs:
+    - function:f634a9429fa0b98f165e16834eaee82b
+  interfaces:
+  - name: AuthorizationCode
+    kind: interface
+    signature: 'interface AuthorizationCode { code: string; userDid: string; handle:
+      string; scope: string; codeChallenge: string; codeChallengeMethod: string; redirectUri:
+      string; expiresAt: number }'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: AuthorizationCodeStore
+    kind: interface
+    signature: 'interface AuthorizationCodeStore { create(params): Promise<string>;
+      validate(code: string, codeVerifier: string): Promise<{ userDid: string; handle:
+      string; scope: string } | null> }'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: ClientMetadata
+    kind: interface
+    signature: 'interface ClientMetadata { client_id: string; redirect_uris: string[];
+      grant_types: string[]; scope: string; dpop_bound_access_tokens: boolean; jwks?:
+      { keys: Array<Record<string, unknown>> }; jwks_uri?: string }'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: NonceEntry
+    kind: interface
+    signature: 'interface NonceEntry { current: string; previous: string | null; previousExpiresAt:
+      number; expiresAt: number }'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: ParRequest
+    kind: interface
+    signature: 'interface ParRequest { clientId: string; codeChallenge: string; codeChallengeMethod:
+      string; redirectUri: string; scope: string; state: string; responseType: string;
+      expiresAt: number }'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: ParStore
+    kind: interface
+    signature: 'interface ParStore { store(params: Omit<ParRequest, "expiresAt">):
+      Promise<string>; consume(requestUri: string): Promise<ParRequest | null> }'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: buildHtu
+    kind: function
+    signature: 'buildHtu(url: string): string'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: cleanJwk
+    kind: function
+    signature: 'cleanJwk(jwk: JsonWebKey): Record<string, string>'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: computeCodeChallenge
+    kind: function
+    signature: 'computeCodeChallenge(verifier: string): Promise<string>'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: createDpopNonceStore
+    kind: function
+    signature: 'createDpopNonceStore(): DpopNonceStore'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: createDpopVerifier
+    kind: function
+    signature: 'createDpopVerifier(): DpopVerifier'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: createMemoryAuthorizationCodeStore
+    kind: function
+    signature: 'createMemoryAuthorizationCodeStore(): AuthorizationCodeStore'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: createMemoryParStore
+    kind: function
+    signature: 'createMemoryParStore(): ParStore'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: createMemoryTokenStore
+    kind: function
+    signature: 'createMemoryTokenStore(signer: Signer): TokenStore'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: createSessionInjector
+    kind: function
+    signature: 'createSessionInjector(tokenStore: TokenStore, pdsUrl: string): SessionInjector'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: fetchClientMetadata
+    kind: function
+    signature: 'fetchClientMetadata(clientId: string): Promise<ClientMetadata | null>'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: isReplayed
+    kind: function
+    signature: 'isReplayed(jti: string): boolean'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: makeToken
+    kind: function
+    signature: 'makeToken(params: IssueTokenParams, type: "access" | "refresh", expiresIn:
+      number): Promise<string>'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: recordJti
+    kind: function
+    signature: 'recordJti(jti: string): void'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: verifyClientAssertion
+    kind: function
+    signature: 'verifyClientAssertion(assertion: string, clientId: string, issuer:
+      string): Promise<boolean>'
+    file: lib/atproto-oauth-server-deno/mod.ts
+  - name: verifyProof
+    kind: function
+    signature: 'verifyProof(proof: string, method: string, url: string, accessToken?:
+      string): Promise<DpopProofValidation | null>'
+    file: lib/atproto-oauth-server-deno/mod.ts
 codeRefIndex:
 - file:lib/atproto-oauth-server-deno/mod.ts mod.ts@lib/atproto-oauth-server-deno/mod.ts
+- function:099ecb227ede6aa98659442505d9af85 computeCodeChallenge@lib/atproto-oauth-server-deno/mod.ts:428
+- function:1bfcd465c4ca83ca6d5adb2f00052e87 createDpopNonceStore@lib/atproto-oauth-server-deno/mod.ts:342
+- function:1e0768495ca20def01007b0eeb0f1fd7 createMemoryParStore@lib/atproto-oauth-server-deno/mod.ts:612
+- function:2128d671b46fc4ff96a8430e43eca3c8 createSessionInjector@lib/atproto-oauth-server-deno/mod.ts:147
+- function:242b84215f9e9e9cb9e7b6e8589cbea3 createMemoryAuthorizationCodeStore@lib/atproto-oauth-server-deno/mod.ts:425
+- function:33a34ddb8a5223abbdb61a0649b6ec4f isReplayed@lib/atproto-oauth-server-deno/mod.ts:215
+- function:443f3ce9633059f50d36532d60f84cad verifyClientAssertion@lib/atproto-oauth-server-deno/mod.ts:543
+- function:4e3837b50f10c347dbe8b2a521d71bb3 createDpopVerifier@lib/atproto-oauth-server-deno/mod.ts:212
+- function:56d3144953cb1a85b947ff4b02913324 buildHtu@lib/atproto-oauth-server-deno/mod.ts:236
+- function:71c1b1cf77d02fdc77b080fed3e55cb1 verifyProof@lib/atproto-oauth-server-deno/mod.ts:241
+- function:a43bbd5584bbf3f7bd08f82a68ed0c5f makeToken@lib/atproto-oauth-server-deno/mod.ts:66
+- function:aad8bcedfc3e3c175fe265c634456f2b cleanJwk@lib/atproto-oauth-server-deno/mod.ts:181
+- function:ddd34b95468f868ce7d7a357dc7d4763 fetchClientMetadata@lib/atproto-oauth-server-deno/mod.ts:501
+- function:f634a9429fa0b98f165e16834eaee82b createMemoryTokenStore@lib/atproto-oauth-server-deno/mod.ts:63
+- function:f75bd389c3d5c6073336047a936effee recordJti@lib/atproto-oauth-server-deno/mod.ts:226
+- interface:47d12a88d8a77df960ebf01a17b68c35 ParStore@lib/atproto-oauth-server-deno/mod.ts:481
+- interface:8b1410ffa2c29a5c565be3d35c93d0be AuthorizationCode@lib/atproto-oauth-server-deno/mod.ts:402
+- interface:941ff5d994e672fa27a6aa403661b917 AuthorizationCodeStore@lib/atproto-oauth-server-deno/mod.ts:413
+- interface:a6862310b08471dd38959853d5ea1341 ParRequest@lib/atproto-oauth-server-deno/mod.ts:470
+- interface:ac2b6d06744f10d20f6fddb50f4e519b NonceEntry@lib/atproto-oauth-server-deno/mod.ts:345
+- interface:f8769aebe89cb9bcb0d5e0038f8db732 ClientMetadata@lib/atproto-oauth-server-deno/mod.ts:488

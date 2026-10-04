@@ -144,8 +144,60 @@ system_contexts:
   upstream: self
   depends_on:
   - sc.hono-pds
+  requirements:
+  - id: r.authorization-code
+    level: MUST
+  - id: r.clean-jwk
+    level: MUST
+  - id: r.client-assertion
+    level: MUST
+  - id: r.client-metadata
+    level: MUST
+  - id: r.dpop-htu
+    level: MUST
+  - id: r.dpop-nonce
+    level: MUST
+  - id: r.dpop-proof
+    level: MUST
+  - id: r.dpop-replay-window
+    level: MUST
+  - id: r.par-store
+    level: MUST
+  - id: r.pkce-challenge
+    level: MUST
+  - id: r.session-injection
+    level: MUST
+  - id: r.token-issuance
+    level: MUST
+  - id: r.token-refresh
+    level: MUST
+  - id: r.token-revoke
+    level: MUST
+  - id: r.token-validation
+    level: MUST
   codeRefIndex:
   - file:lib/atproto-oauth-server-deno/mod.ts mod.ts@lib/atproto-oauth-server-deno/mod.ts
+  - function:099ecb227ede6aa98659442505d9af85 computeCodeChallenge@lib/atproto-oauth-server-deno/mod.ts:428
+  - function:1bfcd465c4ca83ca6d5adb2f00052e87 createDpopNonceStore@lib/atproto-oauth-server-deno/mod.ts:342
+  - function:1e0768495ca20def01007b0eeb0f1fd7 createMemoryParStore@lib/atproto-oauth-server-deno/mod.ts:612
+  - function:2128d671b46fc4ff96a8430e43eca3c8 createSessionInjector@lib/atproto-oauth-server-deno/mod.ts:147
+  - function:242b84215f9e9e9cb9e7b6e8589cbea3 createMemoryAuthorizationCodeStore@lib/atproto-oauth-server-deno/mod.ts:425
+  - function:33a34ddb8a5223abbdb61a0649b6ec4f isReplayed@lib/atproto-oauth-server-deno/mod.ts:215
+  - function:443f3ce9633059f50d36532d60f84cad verifyClientAssertion@lib/atproto-oauth-server-deno/mod.ts:543
+  - function:4e3837b50f10c347dbe8b2a521d71bb3 createDpopVerifier@lib/atproto-oauth-server-deno/mod.ts:212
+  - function:56d3144953cb1a85b947ff4b02913324 buildHtu@lib/atproto-oauth-server-deno/mod.ts:236
+  - function:71c1b1cf77d02fdc77b080fed3e55cb1 verifyProof@lib/atproto-oauth-server-deno/mod.ts:241
+  - function:a43bbd5584bbf3f7bd08f82a68ed0c5f makeToken@lib/atproto-oauth-server-deno/mod.ts:66
+  - function:aad8bcedfc3e3c175fe265c634456f2b cleanJwk@lib/atproto-oauth-server-deno/mod.ts:181
+  - function:ddd34b95468f868ce7d7a357dc7d4763 fetchClientMetadata@lib/atproto-oauth-server-deno/mod.ts:501
+  - function:f634a9429fa0b98f165e16834eaee82b createMemoryTokenStore@lib/atproto-oauth-server-deno/mod.ts:63
+  - function:f75bd389c3d5c6073336047a936effee recordJti@lib/atproto-oauth-server-deno/mod.ts:226
+  - interface:47d12a88d8a77df960ebf01a17b68c35 ParStore@lib/atproto-oauth-server-deno/mod.ts:481
+  - interface:8b1410ffa2c29a5c565be3d35c93d0be AuthorizationCode@lib/atproto-oauth-server-deno/mod.ts:402
+  - interface:941ff5d994e672fa27a6aa403661b917 AuthorizationCodeStore@lib/atproto-oauth-server-deno/mod.ts:413
+  - interface:a6862310b08471dd38959853d5ea1341 ParRequest@lib/atproto-oauth-server-deno/mod.ts:470
+  - interface:ac2b6d06744f10d20f6fddb50f4e519b NonceEntry@lib/atproto-oauth-server-deno/mod.ts:345
+  - interface:f8769aebe89cb9bcb0d5e0038f8db732 ClientMetadata@lib/atproto-oauth-server-deno/mod.ts:488
 - id: sc.lib-atproto-repo-deno
   name: lib-atproto-repo-deno
   spec: specs/lib-atproto-repo-deno.yaml
