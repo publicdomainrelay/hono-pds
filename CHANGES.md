@@ -267,7 +267,7 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 | test-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | test-conformance-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | test-hono-factory-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
-| test-hono-factory-s2c-822e5bc003b6 | SpecToCode | Pending |  | 0 | - |
+| test-hono-factory-s2c-822e5bc003b6 | SpecToCode | Running |  | 0 | - |
 | test-hono-factory-s2c-c4cef1bfaeea | SpecToCode | Succeeded |  | 0 | - |
 | test-hono-factory-s2c-f3d38151aca9 | SpecToCode | Failed |  | 0 | - |
 | test-hono-factory-s2c-f3d38151aca9-a2 | SpecToCode | Succeeded | e756842f | 0 | - |
