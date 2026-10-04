@@ -84,6 +84,28 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 - added `r.signer-factories` (MUST): "Signer and Verifier values are produced only through the factories: signerFromKeypair wraps an existing secp256k1 keypair directly, signerFromPrivateKeyHex asynchronously derives one from a hex private key, createVerifier builds a fresh verifier, and verifierFromKeypair derives a verifier from a keypair. These are the crypto boundary the repo and service-auth layers consume."
 - added `r.storage-contract` (MUST): "Every storage backend exposes the same contract: get(cid) returns the stored bytes or null, put(cid, bytes) persists content-addressed blocks, has(cid) reports existence, getHead(did) returns the current {commit, rev} head or null, and setHead(did, head) records it. MemoryStorage, DenoKvStorage, and IndexedDbStorage each implement this so any of them can be handed to Repo, exportCar, or the MST layer unchanged."
 
+### lib-common
+
+- intent: "" -> "This context exists to pin down the lowest layer of the repo so every other package can depend on one definition of bytes, CIDs, DAG-CBOR, TIDs and subscription callbacks instead of re-deriving them. It is pure data-format code: no I/O, no config, no Hono. Anything in the repo that needs to hash, encode, or order identifiers imports from here, so the invariants below — codec round-trips, CID validation, TID monotonicity and ordering, DAG-CBOR link tagging — are the contract the rest of the system relies on."
+- added `r.barrel-export` (SHOULD): "lib/common/mod.ts re-exports the bytes, cid, dag-cbor, subscribe-types and tid modules so consumers import the shared primitives from one specifier instead of reaching into individual files."
+- added `r.base32-codec` (MUST): "base32Encode and base32Decode convert between bytes and lowercase base32 (the alphabet used for CIDs and TIDs) and are inverses of each other."
+- added `r.base64-codec` (MUST): "base64Encode and base64Decode convert between bytes and standard base64 text and are inverses of each other."
+- added `r.byte-utilities` (MUST): "concat joins any number of Bytes arrays into one new array without mutating its inputs, and bytesEqual reports element-wise equality of two Bytes arrays, returning false immediately on differing lengths."
+- added `r.bytes-type` (MUST): "Bytes is an alias for Uint8Array and is the single byte-sequence type used by every encode/decode helper in this context, so callers never pass or receive a plain number array or a Buffer."
+- added `r.cid-digest-roundtrip` (MUST): "cidToBytes decodes a Cid to its raw bytes and cidDigest extracts the multihash digest from a Cid, so cidDigest(cidFromDigest(d)) equals d for any digest d."
+- added `r.cid-link-form` (MUST): "cidLink wraps a Cid or its bytes in the { $link: Cid } form used inside encoded records, isCidLink is the type guard that recognizes that form, and cidFromLink unwraps it back to a Cid, so links survive an encode/decode round trip as links."
+- added `r.cid-type` (MUST): "Cid is the string form of a content identifier, and cidFromDigest builds one from a raw digest by prefixing the CIDv1 sha2-256 codec bytes and base32-encoding the result, so a digest maps to exactly one Cid string."
+- added `r.cid-validation` (MUST): "isValidCid is a type guard that accepts only well-formed CID strings and narrows them to Cid, and cidEquals compares two Cids for identity so callers do not compare Cid values by object reference."
+- added `r.dag-cbor-codec` (MUST): "encode serializes a value to deterministic DAG-CBOR bytes and decode parses those bytes back; decode rejects malformed input such as non-string map keys and a tag-42 that does not wrap a byte string, and decode reconstructs the link form rather than the raw bytes."
+- added `r.drisl-cbor-sibling` (MAY): "lib/common/drisl-cbor.ts sits alongside dag-cbor.ts as a second CBOR binding in the same directory, so the DAG-CBOR implementation can be swapped without moving its callers."
+- added `r.hex-codec` (MUST): "hexEncode renders bytes as lowercase hex and hexDecode parses hex back to bytes; hexDecode throws on an odd-length string and on any character that is not a hex digit rather than silently producing a wrong byte."
+- added `r.subscribe-types` (MUST): "Subscription and SubscribeHandler describe the transport-agnostic subscribe contract — a handler receives events and returns a Subscription whose close releases the underlying stream — so subscribe implementations across packages share one type without importing a concrete transport."
+- added `r.tid-clock-reset` (MUST): "resetClockId resets the process-wide clock identifier, taking an explicit id when one is supplied, and exists so tests can make TID generation deterministic."
+- added `r.tid-generation` (MUST): "nextTid returns a Tid for the current time and guarantees monotonic increase within the process: when the clock has not advanced past the previous call it increments the clock identifier instead of repeating or going backwards, and tidFromTime builds a Tid from an explicit microsecond timestamp with an optional clock id."
+- added `r.tid-parse-validate` (MUST): "parseTid decodes a Tid back into its micros and clockId, inverting tidFromTime, and isValidTid is a type guard that accepts a string only when it is a well-formed Tid so untrusted input can be narrowed before use."
+- added `r.tid-type` (MUST): "Tid is the string type for AT Protocol timestamp identifiers: 13-character base32-sortable strings whose lexicographic order matches creation order."
+- added `r.utf8-codec` (MUST): "utf8Encode turns a string into its UTF-8 bytes using a shared TextEncoder and utf8Decode turns bytes back into a string using a shared TextDecoder, so the two are exact inverses and no per-call encoder is constructed."
+
 ## Realization
 
 | change | direction | phase | commit | verify | acceptance |
@@ -93,5 +115,6 @@ The requirement-level delta against `open-architecture/hono-pds`, and what this 
 | lib-abc-atproto-repo-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | lib-atproto-oauth-server-deno-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | lib-atproto-repo-deno-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
-| lib-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
+| lib-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Succeeded |  | 0 | - |
 | lib-common-oauth-server-common-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |
+| lib-hono-factory-atproto-repo-deno-c2s-fa8920306bc4-fa8920306bc4 | CodeToSpec | Running |  | 0 | - |

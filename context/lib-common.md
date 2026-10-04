@@ -2,7 +2,7 @@
 
 Repository: `hono-pds`
 
-_(empty: write what this context is for)_
+This context exists to pin down the lowest layer of the repo so every other package can depend on one definition of bytes, CIDs, DAG-CBOR, TIDs and subscription callbacks instead of re-deriving them. It is pure data-format code: no I/O, no config, no Hono. Anything in the repo that needs to hash, encode, or order identifiers imports from here, so the invariants below — codec round-trips, CID validation, TID monotonicity and ordering, DAG-CBOR link tagging — are the contract the rest of the system relies on.
 
 _The resolved code references are regenerated on every run. Cite the ids above rather than writing them here._
 

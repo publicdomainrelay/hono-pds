@@ -290,6 +290,43 @@ system_contexts:
   upstream: self
   depends_on:
   - sc.hono-pds
+  requirements:
+  - id: r.barrel-export
+    level: SHOULD
+  - id: r.base32-codec
+    level: MUST
+  - id: r.base64-codec
+    level: MUST
+  - id: r.byte-utilities
+    level: MUST
+  - id: r.bytes-type
+    level: MUST
+  - id: r.cid-digest-roundtrip
+    level: MUST
+  - id: r.cid-link-form
+    level: MUST
+  - id: r.cid-type
+    level: MUST
+  - id: r.cid-validation
+    level: MUST
+  - id: r.dag-cbor-codec
+    level: MUST
+  - id: r.drisl-cbor-sibling
+    level: MAY
+  - id: r.hex-codec
+    level: MUST
+  - id: r.subscribe-types
+    level: MUST
+  - id: r.tid-clock-reset
+    level: MUST
+  - id: r.tid-generation
+    level: MUST
+  - id: r.tid-parse-validate
+    level: MUST
+  - id: r.tid-type
+    level: MUST
+  - id: r.utf8-codec
+    level: MUST
   codeRefIndex:
   - file:lib/common/bytes.ts bytes.ts@lib/common/bytes.ts
   - file:lib/common/cid.ts cid.ts@lib/common/cid.ts
@@ -298,6 +335,36 @@ system_contexts:
   - file:lib/common/mod.ts mod.ts@lib/common/mod.ts
   - file:lib/common/subscribe-types.ts subscribe-types.ts@lib/common/subscribe-types.ts
   - file:lib/common/tid.ts tid.ts@lib/common/tid.ts
+  - function:01c98d3a332fbbf7eb0235c431cb8a72 hexEncode@lib/common/bytes.ts:16
+  - function:0f5bb9fbeaea51e0ed9695514c4cff46 parseTid@lib/common/tid.ts:103
+  - function:17133f0ecd019ece0b7865268773e6cd cidDigest@lib/common/cid.ts:35
+  - function:227950df02ace808ee9d20754ad7397f isValidTid@lib/common/tid.ts:116
+  - function:227d7666fdd45b742ef3af7c92dfc6ee isCidLink@lib/common/dag-cbor.ts:257
+  - function:24748c1afdcced17ac675c4b3a27714f nextTid@lib/common/tid.ts:27
+  - function:4572442dfcba55aa00003f0c97b8f9de base64Decode@lib/common/bytes.ts:47
+  - function:524e4abef36ca7c2474670680ced7739 bytesEqual@lib/common/bytes.ts:102
+  - function:55685ba8bbe657ba51874ac7b87cf527 utf8Encode@lib/common/bytes.ts:6
+  - function:715632c4c02e805c4fddf2c3c53f8365 encode@lib/common/dag-cbor.ts:266
+  - function:9f66c4b3aa766d98b237b1b2732672bc base32Encode@lib/common/bytes.ts:56
+  - function:a484eb570c93476518efcecf4c14139b cidFromDigest@lib/common/cid.ts:13
+  - function:a9cd82ca460c103d42d9a8119893325d resetClockId@lib/common/tid.ts:15
+  - function:ab529efcf58f550a1fa9ee9812b3182e concat@lib/common/bytes.ts:91
+  - function:ad71575387e43d8ea0fc5fc55115b874 cidToBytes@lib/common/cid.ts:26
+  - function:afb689bb3b7a1f7bedb035285a03a235 cidLink@lib/common/dag-cbor.ts:237
+  - function:b2cf9899ec95c445e72b05ee3e51aff1 cidEquals@lib/common/cid.ts:59
+  - function:bedbccfced7ce19d9df8d264e9d5f28f decode@lib/common/dag-cbor.ts:272
+  - function:c2c1d8ea15e2a84502dd41bb0c7117af base32Decode@lib/common/bytes.ts:74
+  - function:cbf5c2696667b12cfdeed24e0a090ddf tidFromTime@lib/common/tid.ts:45
+  - function:d1582016bd9fbd5cef48a212d75a077b cidFromLink@lib/common/dag-cbor.ts:262
+  - function:d2b6a53592dcd51bc62f2e8c817006b1 hexDecode@lib/common/bytes.ts:25
+  - function:d444906f0cb0d192ea63ac4c86299c8d utf8Decode@lib/common/bytes.ts:10
+  - function:f088a1ac5ff6b45107bcd08bd3c8b964 base64Encode@lib/common/bytes.ts:41
+  - function:fbeb8b947ca578391b990b133e1a980e isValidCid@lib/common/cid.ts:46
+  - interface:47bc85c7c8975ca35be2d248a39fc8f8 Subscription@lib/common/subscribe-types.ts:1
+  - type_alias:349a878ef851f1767aff55630d58fc0e Bytes@lib/common/bytes.ts:1
+  - type_alias:70120236446060d8609cd55827e58058 Cid@lib/common/cid.ts:4
+  - type_alias:8456cefe0f30f0368ef52c81427cf681 Tid@lib/common/tid.ts:1
+  - type_alias:b497332f11279a3ca8c515bffde9accd SubscribeHandler@lib/common/subscribe-types.ts:6
 - id: sc.lib-common-oauth-server-common
   name: lib-common-oauth-server-common
   spec: specs/lib-common-oauth-server-common.yaml

@@ -8,6 +8,291 @@ spec:
   upstream: self
   dependsOn:
   - sc.hono-pds
+  intent: 'This context exists to pin down the lowest layer of the repo so every other
+    package can depend on one definition of bytes, CIDs, DAG-CBOR, TIDs and subscription
+    callbacks instead of re-deriving them. It is pure data-format code: no I/O, no
+    config, no Hono. Anything in the repo that needs to hash, encode, or order identifiers
+    imports from here, so the invariants below — codec round-trips, CID validation,
+    TID monotonicity and ordering, DAG-CBOR link tagging — are the contract the rest
+    of the system relies on.'
+  requirements:
+  - id: r.barrel-export
+    level: SHOULD
+    text: lib/common/mod.ts re-exports the bytes, cid, dag-cbor, subscribe-types and
+      tid modules so consumers import the shared primitives from one specifier instead
+      of reaching into individual files.
+    codeRefs:
+    - file:lib/common/mod.ts
+  - id: r.base32-codec
+    level: MUST
+    text: base32Encode and base32Decode convert between bytes and lowercase base32
+      (the alphabet used for CIDs and TIDs) and are inverses of each other.
+    codeRefs:
+    - file:lib/common/bytes.ts
+    - function:9f66c4b3aa766d98b237b1b2732672bc
+    - function:c2c1d8ea15e2a84502dd41bb0c7117af
+  - id: r.base64-codec
+    level: MUST
+    text: base64Encode and base64Decode convert between bytes and standard base64
+      text and are inverses of each other.
+    codeRefs:
+    - file:lib/common/bytes.ts
+    - function:4572442dfcba55aa00003f0c97b8f9de
+    - function:f088a1ac5ff6b45107bcd08bd3c8b964
+  - id: r.byte-utilities
+    level: MUST
+    text: concat joins any number of Bytes arrays into one new array without mutating
+      its inputs, and bytesEqual reports element-wise equality of two Bytes arrays,
+      returning false immediately on differing lengths.
+    codeRefs:
+    - file:lib/common/bytes.ts
+    - function:524e4abef36ca7c2474670680ced7739
+    - function:ab529efcf58f550a1fa9ee9812b3182e
+  - id: r.bytes-type
+    level: MUST
+    text: Bytes is an alias for Uint8Array and is the single byte-sequence type used
+      by every encode/decode helper in this context, so callers never pass or receive
+      a plain number array or a Buffer.
+    codeRefs:
+    - file:lib/common/bytes.ts
+    - type_alias:349a878ef851f1767aff55630d58fc0e
+  - id: r.cid-digest-roundtrip
+    level: MUST
+    text: cidToBytes decodes a Cid to its raw bytes and cidDigest extracts the multihash
+      digest from a Cid, so cidDigest(cidFromDigest(d)) equals d for any digest d.
+    codeRefs:
+    - file:lib/common/cid.ts
+    - function:17133f0ecd019ece0b7865268773e6cd
+    - function:ad71575387e43d8ea0fc5fc55115b874
+  - id: r.cid-link-form
+    level: MUST
+    text: 'cidLink wraps a Cid or its bytes in the { $link: Cid } form used inside
+      encoded records, isCidLink is the type guard that recognizes that form, and
+      cidFromLink unwraps it back to a Cid, so links survive an encode/decode round
+      trip as links.'
+    codeRefs:
+    - file:lib/common/dag-cbor.ts
+    - function:227d7666fdd45b742ef3af7c92dfc6ee
+    - function:afb689bb3b7a1f7bedb035285a03a235
+    - function:d1582016bd9fbd5cef48a212d75a077b
+  - id: r.cid-type
+    level: MUST
+    text: Cid is the string form of a content identifier, and cidFromDigest builds
+      one from a raw digest by prefixing the CIDv1 sha2-256 codec bytes and base32-encoding
+      the result, so a digest maps to exactly one Cid string.
+    codeRefs:
+    - file:lib/common/cid.ts
+    - function:a484eb570c93476518efcecf4c14139b
+    - type_alias:70120236446060d8609cd55827e58058
+  - id: r.cid-validation
+    level: MUST
+    text: isValidCid is a type guard that accepts only well-formed CID strings and
+      narrows them to Cid, and cidEquals compares two Cids for identity so callers
+      do not compare Cid values by object reference.
+    codeRefs:
+    - file:lib/common/cid.ts
+    - function:b2cf9899ec95c445e72b05ee3e51aff1
+    - function:fbeb8b947ca578391b990b133e1a980e
+  - id: r.dag-cbor-codec
+    level: MUST
+    text: encode serializes a value to deterministic DAG-CBOR bytes and decode parses
+      those bytes back; decode rejects malformed input such as non-string map keys
+      and a tag-42 that does not wrap a byte string, and decode reconstructs the link
+      form rather than the raw bytes.
+    codeRefs:
+    - file:lib/common/dag-cbor.ts
+    - function:715632c4c02e805c4fddf2c3c53f8365
+    - function:bedbccfced7ce19d9df8d264e9d5f28f
+  - id: r.drisl-cbor-sibling
+    level: MAY
+    text: lib/common/drisl-cbor.ts sits alongside dag-cbor.ts as a second CBOR binding
+      in the same directory, so the DAG-CBOR implementation can be swapped without
+      moving its callers.
+    codeRefs:
+    - file:lib/common/drisl-cbor.ts
+  - id: r.hex-codec
+    level: MUST
+    text: hexEncode renders bytes as lowercase hex and hexDecode parses hex back to
+      bytes; hexDecode throws on an odd-length string and on any character that is
+      not a hex digit rather than silently producing a wrong byte.
+    codeRefs:
+    - file:lib/common/bytes.ts
+    - function:01c98d3a332fbbf7eb0235c431cb8a72
+    - function:d2b6a53592dcd51bc62f2e8c817006b1
+  - id: r.subscribe-types
+    level: MUST
+    text: Subscription and SubscribeHandler describe the transport-agnostic subscribe
+      contract — a handler receives events and returns a Subscription whose close
+      releases the underlying stream — so subscribe implementations across packages
+      share one type without importing a concrete transport.
+    codeRefs:
+    - file:lib/common/subscribe-types.ts
+    - interface:47bc85c7c8975ca35be2d248a39fc8f8
+    - type_alias:b497332f11279a3ca8c515bffde9accd
+  - id: r.tid-clock-reset
+    level: MUST
+    text: resetClockId resets the process-wide clock identifier, taking an explicit
+      id when one is supplied, and exists so tests can make TID generation deterministic.
+    codeRefs:
+    - file:lib/common/tid.ts
+    - function:a9cd82ca460c103d42d9a8119893325d
+  - id: r.tid-generation
+    level: MUST
+    text: 'nextTid returns a Tid for the current time and guarantees monotonic increase
+      within the process: when the clock has not advanced past the previous call it
+      increments the clock identifier instead of repeating or going backwards, and
+      tidFromTime builds a Tid from an explicit microsecond timestamp with an optional
+      clock id.'
+    codeRefs:
+    - file:lib/common/tid.ts
+    - function:24748c1afdcced17ac675c4b3a27714f
+    - function:cbf5c2696667b12cfdeed24e0a090ddf
+  - id: r.tid-parse-validate
+    level: MUST
+    text: parseTid decodes a Tid back into its micros and clockId, inverting tidFromTime,
+      and isValidTid is a type guard that accepts a string only when it is a well-formed
+      Tid so untrusted input can be narrowed before use.
+    codeRefs:
+    - file:lib/common/tid.ts
+    - function:0f5bb9fbeaea51e0ed9695514c4cff46
+    - function:227950df02ace808ee9d20754ad7397f
+  - id: r.tid-type
+    level: MUST
+    text: 'Tid is the string type for AT Protocol timestamp identifiers: 13-character
+      base32-sortable strings whose lexicographic order matches creation order.'
+    codeRefs:
+    - file:lib/common/tid.ts
+    - type_alias:8456cefe0f30f0368ef52c81427cf681
+  - id: r.utf8-codec
+    level: MUST
+    text: utf8Encode turns a string into its UTF-8 bytes using a shared TextEncoder
+      and utf8Decode turns bytes back into a string using a shared TextDecoder, so
+      the two are exact inverses and no per-call encoder is constructed.
+    codeRefs:
+    - file:lib/common/bytes.ts
+    - function:55685ba8bbe657ba51874ac7b87cf527
+    - function:d444906f0cb0d192ea63ac4c86299c8d
+  interfaces:
+  - name: Bytes
+    kind: type_alias
+    signature: type Bytes = Uint8Array
+    file: lib/common/bytes.ts
+  - name: Cid
+    kind: type_alias
+    signature: type Cid = string
+    file: lib/common/cid.ts
+  - name: SubscribeHandler
+    kind: type_alias
+    signature: 'type SubscribeHandler = (event: unknown) => void'
+    file: lib/common/subscribe-types.ts
+  - name: Subscription
+    kind: interface
+    signature: interface Subscription
+    file: lib/common/subscribe-types.ts
+  - name: Tid
+    kind: type_alias
+    signature: type Tid = string
+    file: lib/common/tid.ts
+  - name: base32Decode
+    kind: function
+    signature: 'base32Decode(s: string): Bytes'
+    file: lib/common/bytes.ts
+  - name: base32Encode
+    kind: function
+    signature: 'base32Encode(b: Bytes): string'
+    file: lib/common/bytes.ts
+  - name: base64Decode
+    kind: function
+    signature: 'base64Decode(s: string): Bytes'
+    file: lib/common/bytes.ts
+  - name: base64Encode
+    kind: function
+    signature: 'base64Encode(b: Bytes): string'
+    file: lib/common/bytes.ts
+  - name: bytesEqual
+    kind: function
+    signature: 'bytesEqual(a: Bytes, b: Bytes): boolean'
+    file: lib/common/bytes.ts
+  - name: cidDigest
+    kind: function
+    signature: 'cidDigest(cid: Cid): Bytes'
+    file: lib/common/cid.ts
+  - name: cidEquals
+    kind: function
+    signature: 'cidEquals(a: Cid, b: Cid): boolean'
+    file: lib/common/cid.ts
+  - name: cidFromDigest
+    kind: function
+    signature: 'cidFromDigest(digest: Bytes): Cid'
+    file: lib/common/cid.ts
+  - name: cidFromLink
+    kind: function
+    signature: 'cidFromLink(link: { $link: Cid }): Cid'
+    file: lib/common/dag-cbor.ts
+  - name: cidLink
+    kind: function
+    signature: 'cidLink(cidOrBytes: Cid | Bytes): { $link: Cid }'
+    file: lib/common/dag-cbor.ts
+  - name: cidToBytes
+    kind: function
+    signature: 'cidToBytes(cid: Cid): Bytes'
+    file: lib/common/cid.ts
+  - name: concat
+    kind: function
+    signature: 'concat(...arrays: Bytes[]): Bytes'
+    file: lib/common/bytes.ts
+  - name: decode
+    kind: function
+    signature: 'decode(buf: Bytes): unknown'
+    file: lib/common/dag-cbor.ts
+  - name: encode
+    kind: function
+    signature: 'encode(val: unknown): Bytes'
+    file: lib/common/dag-cbor.ts
+  - name: hexDecode
+    kind: function
+    signature: 'hexDecode(s: string): Bytes'
+    file: lib/common/bytes.ts
+  - name: hexEncode
+    kind: function
+    signature: 'hexEncode(b: Bytes): string'
+    file: lib/common/bytes.ts
+  - name: isCidLink
+    kind: function
+    signature: 'isCidLink(val: unknown): val is { $link: Cid }'
+    file: lib/common/dag-cbor.ts
+  - name: isValidCid
+    kind: function
+    signature: 'isValidCid(s: string): s is Cid'
+    file: lib/common/cid.ts
+  - name: isValidTid
+    kind: function
+    signature: 'isValidTid(s: string): s is Tid'
+    file: lib/common/tid.ts
+  - name: nextTid
+    kind: function
+    signature: 'nextTid(): Tid'
+    file: lib/common/tid.ts
+  - name: parseTid
+    kind: function
+    signature: 'parseTid(tid: Tid): { micros: number; clockId: number }'
+    file: lib/common/tid.ts
+  - name: resetClockId
+    kind: function
+    signature: 'resetClockId(id?: number): void'
+    file: lib/common/tid.ts
+  - name: tidFromTime
+    kind: function
+    signature: 'tidFromTime(micros: number, clock?: number): Tid'
+    file: lib/common/tid.ts
+  - name: utf8Decode
+    kind: function
+    signature: 'utf8Decode(b: Bytes): string'
+    file: lib/common/bytes.ts
+  - name: utf8Encode
+    kind: function
+    signature: 'utf8Encode(s: string): Bytes'
+    file: lib/common/bytes.ts
 codeRefIndex:
 - file:lib/common/bytes.ts bytes.ts@lib/common/bytes.ts
 - file:lib/common/cid.ts cid.ts@lib/common/cid.ts
@@ -16,3 +301,33 @@ codeRefIndex:
 - file:lib/common/mod.ts mod.ts@lib/common/mod.ts
 - file:lib/common/subscribe-types.ts subscribe-types.ts@lib/common/subscribe-types.ts
 - file:lib/common/tid.ts tid.ts@lib/common/tid.ts
+- function:01c98d3a332fbbf7eb0235c431cb8a72 hexEncode@lib/common/bytes.ts:16
+- function:0f5bb9fbeaea51e0ed9695514c4cff46 parseTid@lib/common/tid.ts:103
+- function:17133f0ecd019ece0b7865268773e6cd cidDigest@lib/common/cid.ts:35
+- function:227950df02ace808ee9d20754ad7397f isValidTid@lib/common/tid.ts:116
+- function:227d7666fdd45b742ef3af7c92dfc6ee isCidLink@lib/common/dag-cbor.ts:257
+- function:24748c1afdcced17ac675c4b3a27714f nextTid@lib/common/tid.ts:27
+- function:4572442dfcba55aa00003f0c97b8f9de base64Decode@lib/common/bytes.ts:47
+- function:524e4abef36ca7c2474670680ced7739 bytesEqual@lib/common/bytes.ts:102
+- function:55685ba8bbe657ba51874ac7b87cf527 utf8Encode@lib/common/bytes.ts:6
+- function:715632c4c02e805c4fddf2c3c53f8365 encode@lib/common/dag-cbor.ts:266
+- function:9f66c4b3aa766d98b237b1b2732672bc base32Encode@lib/common/bytes.ts:56
+- function:a484eb570c93476518efcecf4c14139b cidFromDigest@lib/common/cid.ts:13
+- function:a9cd82ca460c103d42d9a8119893325d resetClockId@lib/common/tid.ts:15
+- function:ab529efcf58f550a1fa9ee9812b3182e concat@lib/common/bytes.ts:91
+- function:ad71575387e43d8ea0fc5fc55115b874 cidToBytes@lib/common/cid.ts:26
+- function:afb689bb3b7a1f7bedb035285a03a235 cidLink@lib/common/dag-cbor.ts:237
+- function:b2cf9899ec95c445e72b05ee3e51aff1 cidEquals@lib/common/cid.ts:59
+- function:bedbccfced7ce19d9df8d264e9d5f28f decode@lib/common/dag-cbor.ts:272
+- function:c2c1d8ea15e2a84502dd41bb0c7117af base32Decode@lib/common/bytes.ts:74
+- function:cbf5c2696667b12cfdeed24e0a090ddf tidFromTime@lib/common/tid.ts:45
+- function:d1582016bd9fbd5cef48a212d75a077b cidFromLink@lib/common/dag-cbor.ts:262
+- function:d2b6a53592dcd51bc62f2e8c817006b1 hexDecode@lib/common/bytes.ts:25
+- function:d444906f0cb0d192ea63ac4c86299c8d utf8Decode@lib/common/bytes.ts:10
+- function:f088a1ac5ff6b45107bcd08bd3c8b964 base64Encode@lib/common/bytes.ts:41
+- function:fbeb8b947ca578391b990b133e1a980e isValidCid@lib/common/cid.ts:46
+- interface:47bc85c7c8975ca35be2d248a39fc8f8 Subscription@lib/common/subscribe-types.ts:1
+- type_alias:349a878ef851f1767aff55630d58fc0e Bytes@lib/common/bytes.ts:1
+- type_alias:70120236446060d8609cd55827e58058 Cid@lib/common/cid.ts:4
+- type_alias:8456cefe0f30f0368ef52c81427cf681 Tid@lib/common/tid.ts:1
+- type_alias:b497332f11279a3ca8c515bffde9accd SubscribeHandler@lib/common/subscribe-types.ts:6

@@ -1,14 +1,11 @@
 syncedFingerprint: 9bd5e8fc8de812dbf8fbe687d7001bad65ce1547a3384b888c646ce15293efe1
-realizedSpecHash: 4d1ca51de36bfd586f44a383ee4656dbccef84e06fb978ccac2b563357c86173
+realizedSpecHash: ea4cb6371077c977b601cd2152a43511b3b21f2334669b3627b9136e7a2d5e03
 conditions:
 - type: CodeSynced
-  status: "False"
-  reason: InterfacesMissing
-  message: 'undeclared: Bytes, Cid, SubscribeHandler, Subscription, Tid, base32Decode,
-    base32Encode, base64Decode, base64Encode, bytesEqual, cidDigest, cidEquals, cidFromDigest,
-    cidFromLink, cidLink, cidToBytes, concat, decode, encode, hexDecode, hexEncode,
-    isCidLink, isValidCid, isValidTid, nextTid, parseTid, resetClockId, tidFromTime,
-    utf8Decode, utf8Encode'
+  status: "True"
+  reason: InterfacesObserved
+  message: every declared interface is observed, nothing undeclared is exported and
+    every requirement code ref resolves
 - type: Drifted
   status: "False"
   reason: FingerprintEqual
