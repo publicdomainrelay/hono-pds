@@ -1,10 +1,11 @@
 syncedFingerprint: c346e9363b2207214cb592fcb2543aa64d652744f22e9c0cd7910617c1ce0b1d
-realizedSpecHash: 54a2f494ec88f7d0391e898a9dd11951f0411d56be0a0a20cd9f80ca86b447ff
+realizedSpecHash: 42f7336a742a989c68cba33ff13b0968d18e3a4b8d2cbecc281d3d891cd00fa4
 conditions:
 - type: CodeSynced
-  status: "False"
-  reason: InterfacesMissing
-  message: 'undeclared: PdsSandbox, createPdsSandbox, fetch, shutdown'
+  status: "True"
+  reason: InterfacesObserved
+  message: every declared interface is observed, nothing undeclared is exported and
+    every requirement code ref resolves
 - type: Drifted
   status: "False"
   reason: FingerprintEqual

@@ -2,7 +2,7 @@
 
 Repository: `hono-pds`
 
-_(empty: write what this context is for)_
+This context exists to keep the PDS compute isolated from its transport: the application and its storage run inside a Deno Worker with an explicit, minimal permission set, while the main thread owns the network and the CLI surface. createPdsSandbox is the seam that lets tests and scripts drive the full PDS through a normal fetch(Request) API without the worker ever touching the network itself, and worker-launcher.ts is the compute-only counterpart that speaks the init/request/shutdown message protocol. run-worker.ts and bundle.sh exist so the same sandbox can be exercised interactively, served over HTTP for local use, or bundled into a single deployable artifact.
 
 _The resolved code references are regenerated on every run. Cite the ids above rather than writing them here._
 

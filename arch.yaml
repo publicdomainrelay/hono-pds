@@ -480,10 +480,36 @@ system_contexts:
   upstream: self
   depends_on:
   - sc.hono-pds
+  requirements:
+  - id: r.bundle-frozen-build
+    level: SHOULD
+  - id: r.run-worker-cli-surface
+    level: MUST
+  - id: r.run-worker-signal-shutdown
+    level: MUST
+  - id: r.sandbox-fetch-request-correlation
+    level: MUST
+  - id: r.sandbox-init-handshake
+    level: MUST
+  - id: r.sandbox-interface-shape
+    level: MUST
+  - id: r.sandbox-permission-scope
+    level: MUST
+  - id: r.sandbox-shutdown-sequence
+    level: MUST
+  - id: r.worker-init-and-dispatch
+    level: MUST
+  - id: r.worker-shutdown-close
+    level: MUST
   codeRefIndex:
+  - file:scripts/bundle.sh bundle.sh@scripts/bundle.sh
   - file:scripts/run-worker.ts run-worker.ts@scripts/run-worker.ts
   - file:scripts/sandbox.ts sandbox.ts@scripts/sandbox.ts
   - file:scripts/worker-launcher.ts worker-launcher.ts@scripts/worker-launcher.ts
+  - function:1e8a394a85efb094e83417600cb5d9c6 createPdsSandbox@scripts/sandbox.ts:9
+  - function:7c88be26c839763d478fc66921bff4ad fetch@scripts/sandbox.ts:54
+  - function:de2941b3a7c432edebcb7aedc17dacfd shutdown@scripts/sandbox.ts:72
+  - interface:76792809058bca60ee2f8020cd282718 PdsSandbox@scripts/sandbox.ts:4
 - id: sc.test
   name: test
   spec: specs/test.yaml

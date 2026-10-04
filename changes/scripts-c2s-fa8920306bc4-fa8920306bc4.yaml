@@ -9,5 +9,22 @@ spec:
   fromCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
   toCommit: fa8920306bc4e01b3deea023d3114f6239813f7d
 status:
-  phase: Running
-  message: the agent is summarizing scripts
+  phase: Succeeded
+  agentLog: 'The scripts/ context holds the process-level plumbing for running the
+    hono-pds PDS inside a Deno Worker sandbox. scripts/sandbox.ts exports the PdsSandbox
+    interface (fetch and shutdown) plus createPdsSandbox(), which spawns a persistent
+    Deno worker from scripts/worker-launcher.ts with a locked-down permission set
+    (only PDS_PRIVATE_KEY_HEX, PDS_DID_WEB_SERVICES and MIN_LOG_LEVEL in env, read/write
+    confined to .kv), performs a message-passing init handshake, and returns a fetch
+    function that correlates each outbound request with a numeric id and resolves
+    the matching response, together with a shutdown that posts a shutdown message,
+    waits 200ms and tears the worker down. scripts/worker-launcher.ts is the worker
+    side: it builds the app via createFromEnv() from main.ts, replies ready on init,
+    converts incoming request messages back into Request objects, calls app.fetch,
+    and marshals status, headers and body back as a response message, replying 500
+    on any failure and closing itself on shutdown. scripts/run-worker.ts is the thin
+    CLI entrypoint that creates the sandbox, optionally serves it over HTTP on 127.0.0.1
+    when a port argument is given, otherwise keeps the sandbox alive for programmatic
+    use, and exits cleanly on SIGINT/SIGTERM. scripts/bundle.sh installs dependencies
+    frozen and bundles main.ts into bundle.js.'
+  message: wrote 10 requirement(s) and 4 interface(s) for scripts
