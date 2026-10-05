@@ -1,5 +1,5 @@
 import { createPersistentDenoWorker } from "@publicdomainrelay/sandbox-deno";
-import type { SandboxPermissions } from "@publicdomainrelay/sandbox-abc";
+import type { SandboxPermissions } from "@publicdomainrelay/sandbox-common";
 
 export interface PdsSandbox {
   fetch: (req: Request) => Promise<Response>;

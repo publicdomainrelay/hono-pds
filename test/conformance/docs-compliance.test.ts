@@ -29,12 +29,16 @@ Deno.test("[compliance] commit CIDs use 0x71 codec byte", async () => {
   // Verify the stored commit bytes produce the same CID
   const commitBytes = await storage.get(evt.commit);
   assertExists(commitBytes);
-  const computedDigest = new Uint8Array(await crypto.subtle.digest("SHA-256", commitBytes));
+  const computedDigest = new Uint8Array(
+    await crypto.subtle.digest("SHA-256", new Uint8Array(commitBytes)),
+  );
   assertEquals([...computedDigest], [...digest]);
 
   // Verify record CID also uses 0x71
   const recordBytes = cborEncode({ $type: "com.example.test", value: 42 });
-  const recordDigest = new Uint8Array(await crypto.subtle.digest("SHA-256", recordBytes));
+  const recordDigest = new Uint8Array(
+    await crypto.subtle.digest("SHA-256", new Uint8Array(recordBytes)),
+  );
   const recordCid = await factory.api.getRecord(signer.did(), "com.example.test", "test1");
   assertExists(recordCid);
   assert(recordCid.cid.startsWith("b"));
@@ -66,16 +70,22 @@ Deno.test("[compliance] firehose frame body omits $type field", async () => {
   const signer = signerFromKeypair(kp);
   const factory = createRepoFactory({ storage, signer });
 
-  let frame: Record<string, unknown> | null = null;
-  factory.subscribe({ params: {} }, (f) => { frame = f as Record<string, unknown>; });
+  const frames: Record<string, unknown>[] = [];
+  factory.subscribe(
+    { nsid: "com.atproto.sync.subscribeRepos", params: {} },
+    (f) => { frames.push(f as Record<string, unknown>); },
+  );
 
   await factory.api.applyWrites(signer.did(), [{
     action: "create", collection: "com.example.test",
     rkey: "wire1", record: { $type: "com.example.test", value: 1 },
   }]);
 
-  for (let i = 0; i < 20 && frame === null; i++) await new Promise((r) => setTimeout(r, 5));
-  assertExists(frame);
+  for (let i = 0; i < 20 && frames.length === 0; i++) {
+    await new Promise((r) => setTimeout(r, 5));
+  }
+  assertExists(frames[0]);
+  const frame = frames[0];
 
   // $type must NOT be in the frame body (moved to CBOR header)
   assertEquals("$type" in frame, false, "frame body must not contain $type — it goes in CBOR header");
@@ -93,16 +103,22 @@ Deno.test("[compliance] firehose frame encodes to valid header+body CBOR", async
   const signer = signerFromKeypair(kp);
   const factory = createRepoFactory({ storage, signer });
 
-  let frame: Record<string, unknown> | null = null;
-  factory.subscribe({ params: {} }, (f) => { frame = f as Record<string, unknown>; });
+  const frames: Record<string, unknown>[] = [];
+  factory.subscribe(
+    { nsid: "com.atproto.sync.subscribeRepos", params: {} },
+    (f) => { frames.push(f as Record<string, unknown>); },
+  );
 
   await factory.api.applyWrites(signer.did(), [{
     action: "create", collection: "com.example.test",
     rkey: "wire2", record: { $type: "com.example.test", value: 2 },
   }]);
 
-  for (let i = 0; i < 20 && frame === null; i++) await new Promise((r) => setTimeout(r, 5));
-  assertExists(frame);
+  for (let i = 0; i < 20 && frames.length === 0; i++) {
+    await new Promise((r) => setTimeout(r, 5));
+  }
+  assertExists(frames[0]);
+  const frame = frames[0];
 
   // Simulate what the WebSocket handler does: encode header + body
   const frameType = frame.repo != null ? "#commit"
@@ -234,16 +250,22 @@ Deno.test("[compliance] full write-to-firehose CBOR round-trip", async () => {
   const signer = signerFromKeypair(kp);
   const factory = createRepoFactory({ storage, signer });
 
-  let rawFrame: Record<string, unknown> | null = null;
-  factory.subscribe({ params: {} }, (f) => { rawFrame = f as Record<string, unknown>; });
+  const frames: Record<string, unknown>[] = [];
+  factory.subscribe(
+    { nsid: "com.atproto.sync.subscribeRepos", params: {} },
+    (f) => { frames.push(f as Record<string, unknown>); },
+  );
 
   const evt = await factory.api.applyWrites(signer.did(), [{
     action: "create", collection: "com.example.test",
     rkey: "e2e1", record: { $type: "com.example.test", msg: "round-trip test" },
   }]);
 
-  for (let i = 0; i < 20 && rawFrame === null; i++) await new Promise((r) => setTimeout(r, 5));
-  assertExists(rawFrame);
+  for (let i = 0; i < 20 && frames.length === 0; i++) {
+    await new Promise((r) => setTimeout(r, 5));
+  }
+  assertExists(frames[0]);
+  const rawFrame = frames[0];
 
   // 1. CID is 0x71
   const commitBytes = await storage.get(evt.commit);

@@ -119,11 +119,11 @@ Deno.test("e2e subscribe delivers frame after createRecord", async () => {
   const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
   const { did } = await createAccountAndToken(factory, signer.did());
 
-  let emittedFrame: SequencedFrame | null = null;
+  const frames: SequencedFrame[] = [];
 
   const dispose = factory.subscribe(
-    { params: {} },
-    (frame: SequencedFrame) => { emittedFrame = frame; },
+    { nsid: "com.atproto.sync.subscribeRepos", params: {} },
+    (msg) => { frames.push(msg as SequencedFrame); },
   );
 
   await factory.api.applyWrites(did, [{
@@ -133,17 +133,19 @@ Deno.test("e2e subscribe delivers frame after createRecord", async () => {
     record: { x: 1 },
   }]);
 
-  for (let i = 0; i < 20 && emittedFrame === null; i++) {
+  for (let i = 0; i < 20 && frames.length === 0; i++) {
     await new Promise((r) => setTimeout(r, 5));
   }
 
-  assertExists(emittedFrame);
+  assertExists(frames[0]);
+  const emittedFrame = frames[0];
+  const emittedOps = emittedFrame.ops as { action: string; path: string }[];
   assertEquals(emittedFrame.repo, did);
-  assertEquals(emittedFrame.ops.length, 1);
-  assertEquals(emittedFrame.ops[0].action, "create");
-  assertEquals(emittedFrame.ops[0].path, "com.example.record/subtest");
+  assertEquals(emittedOps.length, 1);
+  assertEquals(emittedOps[0].action, "create");
+  assertEquals(emittedOps[0].path, "com.example.record/subtest");
 
-  dispose();
+  if (typeof dispose === "function") dispose();
 });
 
 // A strongRef minted from a write must address the same bytes that reads return.

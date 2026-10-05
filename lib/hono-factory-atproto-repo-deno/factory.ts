@@ -98,20 +98,6 @@ function extractBearer(authHeader?: string): string | null {
   return m ? m[1].trim() : null;
 }
 
-function b64urlToStandard(b64urlStr: string): string {
-  let s = b64urlStr.replace(/-/g, "+").replace(/_/g, "/");
-  while (s.length % 4 !== 0) s += "=";
-  return s;
-}
-
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    return JSON.parse(atob(b64urlToStandard(parts[1])));
-  } catch { return null; }
-}
-
 function bytesToBase64url(bytes: Uint8Array): string {
   let bin = "";
   for (const b of bytes) bin += String.fromCharCode(b);

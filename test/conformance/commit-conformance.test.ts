@@ -26,7 +26,7 @@ Deno.test("[conformance] commit CBOR structure matches version:3", async () => {
   assertEquals(commit.version, 3);
   assertEquals(typeof (commit.data as { $link: string }).$link, "string");
   assertEquals(typeof commit.rev, "string");
-  assertEquals(commit.rev.length, 13);
+  assertEquals((commit.rev as string).length, 13);
   assertEquals(commit.sig instanceof Uint8Array, true);
 });
 

@@ -12,10 +12,10 @@ Deno.test("[conformance] firehose frame has required #commit fields", async () =
   const factory = createRepoFactory({ storage, signer });
   const did = signer.did();
 
-  let frame: SequencedFrame | null = null;
+  const frames: SequencedFrame[] = [];
   factory.subscribe(
-    { params: {} },
-    (f: SequencedFrame) => { frame = f; },
+    { nsid: "com.atproto.sync.subscribeRepos", params: {} },
+    (msg) => { frames.push(msg as SequencedFrame); },
   );
 
   await factory.api.applyWrites(did, [{
@@ -23,10 +23,11 @@ Deno.test("[conformance] firehose frame has required #commit fields", async () =
     rkey: "frame1", record: { $type: "app.bsky.feed.post", text: "Frame test", createdAt: new Date().toISOString() },
   }]);
 
-  for (let i = 0; i < 20 && frame === null; i++) {
+  for (let i = 0; i < 20 && frames.length === 0; i++) {
     await new Promise((r) => setTimeout(r, 5));
   }
-  assertExists(frame);
+  assertExists(frames[0]);
+  const frame = frames[0];
 
   assertEquals(typeof frame.seq, "number");
   assertEquals(frame.seq, 1);
@@ -44,10 +45,10 @@ Deno.test("[conformance] firehose frame ops match write actions", async () => {
   const factory = createRepoFactory({ storage, signer });
   const did = signer.did();
 
-  let frame: SequencedFrame | null = null;
+  const frames: SequencedFrame[] = [];
   factory.subscribe(
-    { params: {} },
-    (f: SequencedFrame) => { frame = f; },
+    { nsid: "com.atproto.sync.subscribeRepos", params: {} },
+    (msg) => { frames.push(msg as SequencedFrame); },
   );
 
   await factory.api.applyWrites(did, [
@@ -55,16 +56,18 @@ Deno.test("[conformance] firehose frame ops match write actions", async () => {
     { action: "create", collection: "app.bsky.feed.post", rkey: "op2", record: { $type: "app.bsky.feed.post", text: "Op2", createdAt: new Date().toISOString() } },
   ]);
 
-  for (let i = 0; i < 20 && frame === null; i++) {
+  for (let i = 0; i < 20 && frames.length === 0; i++) {
     await new Promise((r) => setTimeout(r, 5));
   }
-  assertExists(frame);
+  assertExists(frames[0]);
+  const frame = frames[0];
+  const ops = frame.ops as { action: string; path: string }[];
 
-  assertEquals(frame.ops.length, 2);
-  assertEquals(frame.ops[0].action, "create");
-  assertEquals(frame.ops[0].path, "app.bsky.feed.post/op1");
-  assertEquals(frame.ops[1].action, "create");
-  assertEquals(frame.ops[1].path, "app.bsky.feed.post/op2");
+  assertEquals(ops.length, 2);
+  assertEquals(ops[0].action, "create");
+  assertEquals(ops[0].path, "app.bsky.feed.post/op1");
+  assertEquals(ops[1].action, "create");
+  assertEquals(ops[1].path, "app.bsky.feed.post/op2");
 });
 
 Deno.test("[conformance] firehose seq numbers are monotonic", async () => {
@@ -76,8 +79,8 @@ Deno.test("[conformance] firehose seq numbers are monotonic", async () => {
 
   const frames: SequencedFrame[] = [];
   factory.subscribe(
-    { params: {} },
-    (f: SequencedFrame) => { frames.push(f); },
+    { nsid: "com.atproto.sync.subscribeRepos", params: {} },
+    (msg) => { frames.push(msg as SequencedFrame); },
   );
 
   await factory.api.applyWrites(did, [{
@@ -145,8 +148,8 @@ Deno.test("[conformance] firehose frame has since pointing to previous rev", asy
 
   const frames: SequencedFrame[] = [];
   factory.subscribe(
-    { params: {} },
-    (f: SequencedFrame) => { frames.push(f); },
+    { nsid: "com.atproto.sync.subscribeRepos", params: {} },
+    (msg) => { frames.push(msg as SequencedFrame); },
   );
 
   const evt1 = await factory.api.applyWrites(did, [{

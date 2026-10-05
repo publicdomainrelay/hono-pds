@@ -498,6 +498,28 @@ export interface ClientMetadata {
 const metadataCache = new Map<string, { metadata: ClientMetadata; cachedAt: number }>();
 const METADATA_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+// The ATProto OAuth client_id scheme rule (atproto.com/specs/oauth#clients): https, with a
+// development exception for http://localhost (no port, path "/"). Anything else is a URL the
+// caller named for the server to fetch, which is an SSRF primitive, so it is not followed.
+// redirect:"error" is required on the fetch itself: a scheme check on the first hop only is
+// defeated by a 302 to a plaintext internal host.
+function fetchableClientUrl(raw: string, allowLocalhost: boolean): string | null {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return null;
+  }
+  if (url.protocol === "https:") return url.href;
+  if (
+    allowLocalhost && url.protocol === "http:" && url.hostname === "localhost" &&
+    url.port === "" && url.pathname === "/"
+  ) {
+    return url.href;
+  }
+  return null;
+}
+
 export async function fetchClientMetadata(clientId: string): Promise<ClientMetadata | null> {
   // Check cache
   const cached = metadataCache.get(clientId);
@@ -505,8 +527,11 @@ export async function fetchClientMetadata(clientId: string): Promise<ClientMetad
     return cached.metadata;
   }
 
+  const target = fetchableClientUrl(clientId, true);
+  if (!target) return null;
+
   try {
-    const res = await fetch(clientId, { headers: { accept: "application/json" } });
+    const res = await fetch(target, { headers: { accept: "application/json" }, redirect: "error" });
     if (res.status !== 200) return null;
 
     const contentType = res.headers.get("content-type") ?? "";
@@ -571,10 +596,13 @@ export async function verifyClientAssertion(
     // Get JWKS: inline jwks or fetch jwks_uri
     let jwks: { keys: Array<Record<string, unknown>> } | null = metadata.jwks ?? null;
     if (!jwks && metadata.jwks_uri) {
-      try {
-        const jwksRes = await fetch(metadata.jwks_uri);
-        if (jwksRes.status === 200) jwks = await jwksRes.json() as { keys: Array<Record<string, unknown>> };
-      } catch { /* fetch failed */ }
+      const jwksTarget = fetchableClientUrl(metadata.jwks_uri, false);
+      if (jwksTarget) {
+        try {
+          const jwksRes = await fetch(jwksTarget, { redirect: "error" });
+          if (jwksRes.status === 200) jwks = await jwksRes.json() as { keys: Array<Record<string, unknown>> };
+        } catch { /* fetch failed */ }
+      }
     }
     if (!jwks || !jwks.keys?.length) return false;
 
