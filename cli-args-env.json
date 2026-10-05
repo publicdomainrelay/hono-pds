@@ -38,6 +38,16 @@
       "type": "string",
       "description": "PLC directory base URL; when set, accounts are did:plc registered here instead of did:key",
       "env": "PDS_PLC_DIRECTORY_URL"
+    },
+    "tls-cert-file": {
+      "type": "string",
+      "description": "PEM certificate to serve TLS with; requires tls-key-file",
+      "env": "TLS_CERT_FILE"
+    },
+    "tls-key-file": {
+      "type": "string",
+      "description": "PEM private key to serve TLS with; requires tls-cert-file",
+      "env": "TLS_KEY_FILE"
     }
   }
 }
