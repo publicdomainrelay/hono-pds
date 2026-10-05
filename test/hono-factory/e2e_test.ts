@@ -201,3 +201,100 @@ Deno.test("e2e write cid is the record cid, not the commit cid", async () => {
   assertEquals(put.cid, afterPut.cid, "putRecord cid must equal getRecord cid");
   assertEquals(put.cid === created.cid, false, "updating the record must change its cid");
 });
+
+async function sleep(ms: number) {
+  await new Promise((r) => setTimeout(r, ms));
+}
+
+// requestCrawl registers the PDS with a crawler; a crawler that refused has not
+// registered us, so the factory must keep announcing until it answers 2xx -- and
+// once it does, never announce again, because the firehose carries the rest and a
+// repeat announce makes the relay reset its cursor.
+Deno.test("e2e crawler announce retries until it gets a 2xx", async () => {
+  let announces = 0;
+  const statuses: number[] = [];
+  const crawler = Deno.serve({ port: 0, hostname: "127.0.0.1", onListen: () => {} }, (req) => {
+    if (new URL(req.url).pathname !== "/xrpc/com.atproto.sync.requestCrawl") {
+      return new Response("not found", { status: 404 });
+    }
+    announces += 1;
+    const status = announces === 1 ? 503 : 200;
+    statuses.push(status);
+    return new Response("", { status });
+  });
+
+  try {
+    const kp = await Secp256k1Keypair.create();
+    const signer = signerFromKeypair(kp);
+    const factory = createRepoFactory({
+      storage: new MemoryStorage(),
+      signer,
+      publicHostname: "pds.example",
+      crawlers: [`http://127.0.0.1:${crawler.addr.port}`],
+    });
+    const { did } = await createAccountAndToken(factory, signer.did());
+
+    const write = (rkey: string, n: number) =>
+      factory.api.applyWrites(did, [{
+        action: "create",
+        collection: "com.example.record",
+        rkey,
+        record: { n },
+      }]);
+
+    await write("crawl1", 1);
+    for (let i = 0; i < 100 && announces < 1; i++) await sleep(10);
+    assertEquals(announces, 1, "first write must announce");
+    assertEquals(statuses[0], 503);
+
+    // The 503 leaves the crawler unannounced; a later write retries after backoff.
+    await sleep(400);
+    await write("crawl2", 2);
+    for (let i = 0; i < 200 && announces < 2; i++) await sleep(10);
+    assertEquals(announces, 2, "a refused crawler must be announced again on a later write");
+    assertEquals(statuses[1], 200, "the retried announce is the one that was accepted");
+
+    // Accepted: the crawler is announced once and not again.
+    await write("crawl3", 3);
+    await write("crawl4", 4);
+    await sleep(300);
+    assertEquals(announces, 2, "an accepted crawler must not be announced again");
+  } finally {
+    await crawler.shutdown();
+  }
+});
+
+Deno.test("e2e crawler is announced exactly once when it accepts", async () => {
+  let announces = 0;
+  const crawler = Deno.serve({ port: 0, hostname: "127.0.0.1", onListen: () => {} }, () => {
+    announces += 1;
+    return new Response("", { status: 200 });
+  });
+
+  try {
+    const kp = await Secp256k1Keypair.create();
+    const signer = signerFromKeypair(kp);
+    const factory = createRepoFactory({
+      storage: new MemoryStorage(),
+      signer,
+      publicHostname: "pds.example",
+      crawlers: [`http://127.0.0.1:${crawler.addr.port}`],
+    });
+    const { did } = await createAccountAndToken(factory, signer.did());
+
+    for (let i = 0; i < 4; i++) {
+      await factory.api.applyWrites(did, [{
+        action: "create",
+        collection: "com.example.record",
+        rkey: `once${i}`,
+        record: { n: i },
+      }]);
+    }
+
+    for (let i = 0; i < 100 && announces < 1; i++) await sleep(10);
+    await sleep(300);
+    assertEquals(announces, 1, "an accepting crawler must be announced exactly once");
+  } finally {
+    await crawler.shutdown();
+  }
+});

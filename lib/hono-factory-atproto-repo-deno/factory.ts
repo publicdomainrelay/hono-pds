@@ -513,7 +513,62 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
   // burst of writes. Announce once per crawler; the firehose carries the rest. A
   // restarted PDS gets a fresh set and re-announces on its first write, which is
   // when the relay actually does need to reset its cursor.
-  const announcedCrawlers = new Set<string>();
+  //
+  // The announce counts as done only when the crawler answers 2xx. A refusal, a
+  // timeout or a network error leaves the crawler unannounced, so a later write
+  // retries it after a bounded backoff: a crawler that is down is retried, not
+  // hammered, and is never given up on for the life of the process.
+  const crawlerAnnounce = new Map<string, {
+    announced: boolean;
+    inFlight: boolean;
+    attempts: number;
+    nextAttemptAt: number;
+  }>();
+
+  function crawlerBackoffMs(attempts: number): number {
+    return Math.min(30_000, 250 * 2 ** Math.max(0, attempts - 1));
+  }
+
+  function announceToCrawlers(): void {
+    if (!opts.crawlers || !opts.publicHostname) return;
+    for (const rawUrl of opts.crawlers) {
+      let state = crawlerAnnounce.get(rawUrl);
+      if (!state) {
+        state = { announced: false, inFlight: false, attempts: 0, nextAttemptAt: 0 };
+        crawlerAnnounce.set(rawUrl, state);
+      }
+      if (state.announced || state.inFlight || Date.now() < state.nextAttemptAt) continue;
+      const st = state;
+      let target: URL;
+      try {
+        target = new URL("/xrpc/com.atproto.sync.requestCrawl", rawUrl);
+      } catch {
+        // A malformed crawler URL is not retryable; skip it without failing the write.
+        st.announced = true;
+        continue;
+      }
+      st.inFlight = true;
+      fetch(target, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ hostname: opts.publicHostname }),
+        signal: AbortSignal.timeout(10_000),
+      }).then((res) => {
+        st.inFlight = false;
+        if (res.ok) {
+          st.announced = true;
+          return;
+        }
+        st.attempts += 1;
+        st.nextAttemptAt = Date.now() + crawlerBackoffMs(st.attempts);
+      }).catch(() => {
+        // Network error or timeout: leave the crawler unannounced and back off.
+        st.inFlight = false;
+        st.attempts += 1;
+        st.nextAttemptAt = Date.now() + crawlerBackoffMs(st.attempts);
+      });
+    }
+  }
 
   const wiredRepo: RepoApi = {
     describe: (d) => repo.describe(d),
@@ -522,21 +577,8 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
     async applyWrites(d, writes) {
       const evt = await repo.applyWrites(d, writes);
       sequencer.append(evt);
-      if (opts.crawlers && opts.publicHostname) {
-        for (const rawUrl of opts.crawlers) {
-          if (announcedCrawlers.has(rawUrl)) continue;
-          announcedCrawlers.add(rawUrl);
-          const url = new URL("/xrpc/com.atproto.sync.requestCrawl", rawUrl);
-          fetch(url, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ hostname: opts.publicHostname }),
-          }).catch(() => {
-            // Let a failed announce be retried by the next write.
-            announcedCrawlers.delete(rawUrl);
-          });
-        }
-      }
+      // Fire-and-forget: the announce must never block or fail the write.
+      announceToCrawlers();
       return evt;
     },
   };
