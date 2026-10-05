@@ -61,13 +61,41 @@ function checkJtiReplay(jti: string): boolean {
   return false;
 }
 
+export interface AtprotoKeyResolver {
+  did: {
+    resolveAtprotoKey(did: string): Promise<string>;
+  };
+}
+
 export interface VerifyServiceAuthOptions {
   /** The expected audience DID (this PDS). */
   audDid: Did;
-  /** Expected lexicon method (NSID). If token has lxm, must match. */
+  /** Expected lexicon method (NSID). Required: the token must carry it and match. */
   lxm?: string;
   /** Optional: verify the issuer is a locally-hosted account. */
   isHostedAccount?: (did: Did) => boolean;
+  /**
+   * Resolver for the issuer's atproto signing key. Defaults to a shared
+   * IdResolver, which resolves did:key locally and did:plc/did:web over the
+   * network.
+   */
+  idResolver?: AtprotoKeyResolver;
+}
+
+let sharedIdResolver: AtprotoKeyResolver | null = null;
+
+async function defaultIdResolver(): Promise<AtprotoKeyResolver> {
+  if (!sharedIdResolver) {
+    const { IdResolver } = await import("@atproto/identity");
+    sharedIdResolver = new IdResolver() as unknown as AtprotoKeyResolver;
+  }
+  return sharedIdResolver;
+}
+
+async function resolveIssuerKey(did: string, resolver?: AtprotoKeyResolver): Promise<string> {
+  if (did.startsWith("did:key:")) return did;
+  const r = resolver ?? await defaultIdResolver();
+  return await r.did.resolveAtprotoKey(did);
 }
 
 export async function verifyServiceAuthToken(
@@ -85,20 +113,27 @@ export async function verifyServiceAuthToken(
     const payloadJson = atob(b64urlToStandard(parts[1]));
     const payload = JSON.parse(payloadJson);
 
-    // Gap 1: lxm check — if token has lxm, it must match expected
-    if (opts.lxm && payload.lxm && payload.lxm !== opts.lxm) return null;
+    // Gap 1: lxm check — the token must carry the expected lexicon method
+    if (!opts.lxm || payload.lxm !== opts.lxm) return null;
 
     // Gap 2: jti replay check
     if (payload.jti && checkJtiReplay(payload.jti)) return null;
 
     if (payload.aud !== opts.audDid) return null;
-    if (payload.exp && Math.floor(Date.now() / 1000) > payload.exp) return null;
+    // Gap 4: exp is REQUIRED. Optional exp is an immortal token, and it poisons the
+    // jti store below (undefined * 1000 === NaN makes both checkJtiReplay's guard and
+    // its GC falsy, so replay goes undetected and the entry leaks). Every signer in
+    // the org sets it -- reference signServiceAuth (crypto/service-auth.ts:38) and
+    // this repo's createSessionTokens (account-store.ts:151,156).
+    if (typeof payload.exp !== "number") return null;
+    if (Math.floor(Date.now() / 1000) > payload.exp) return null;
     if (!payload.iss) return null;
 
     const { verifySignature } = await import("@atproto/crypto");
     const signingInput = utf8Encode(`${parts[0]}.${parts[1]}`);
     const sigBytes = Uint8Array.from(atob(b64urlToStandard(parts[2])), (c) => c.charCodeAt(0));
-    const valid = await verifySignature(payload.iss as Did, signingInput, sigBytes as unknown as Uint8Array<ArrayBuffer>);
+    const keyDid = await resolveIssuerKey(payload.iss, opts.idResolver);
+    const valid = await verifySignature(keyDid as Did, signingInput, sigBytes as unknown as Uint8Array<ArrayBuffer>);
     if (!valid) return null;
 
     // Gap 3: restrict to hosted accounts

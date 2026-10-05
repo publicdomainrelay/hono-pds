@@ -53,7 +53,7 @@ export interface AccountStore {
   validateRefreshJwt(token: string): Promise<{ did: Did; handle: string } | null>;
 }
 
-function createAccountStore(pdsDid: Did, pdsSigner: Signer): AccountStore {
+function createAccountStore(pdsDid: Did, pdsSigner: Signer, pdsKeyDid: Did = pdsSigner.did()): AccountStore {
   const accounts = new Map<string, AccountRecord>();
 
   async function hashPassword(password: string): Promise<{ hash: string; salt: string }> {
@@ -90,12 +90,15 @@ function createAccountStore(pdsDid: Did, pdsSigner: Signer): AccountStore {
       if (header.typ !== expectedTyp) return null;
       const payloadJson = atob(b64urlToStandard(parts[1]));
       const payload = JSON.parse(payloadJson);
-      if (payload.exp && Math.floor(Date.now() / 1000) > payload.exp) return null;
+      // Required, not optional: a missing exp is an immortal session token. Our own
+      // createSessionTokens (:151,:156) always sets one, so this rejects nothing real.
+      if (typeof payload.exp !== "number") return null;
+      if (Math.floor(Date.now() / 1000) > payload.exp) return null;
       if (!payload.sub || !payload.handle) return null;
       const { verifySignature } = await import("@atproto/crypto");
       const signingInput = utf8Encode(`${parts[0]}.${parts[1]}`);
       const sigBytes = Uint8Array.from(atob(b64urlToStandard(parts[2])), (c) => c.charCodeAt(0));
-      const valid = await verifySignature(pdsDid, signingInput, sigBytes as unknown as Uint8Array<ArrayBuffer>);
+      const valid = await verifySignature(pdsKeyDid, signingInput, sigBytes as unknown as Uint8Array<ArrayBuffer>);
       if (!valid) return null;
       return { did: payload.sub, handle: payload.handle };
     } catch { return null; }

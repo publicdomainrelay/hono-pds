@@ -156,7 +156,7 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
   const sequencer = opts.sequencer ?? new FirehoseSequencer();
   const log = opts.log ?? createLogger("pds");
 
-  const accountStore: AccountStore = createAccountStore(did, opts.signer);
+  const accountStore: AccountStore = createAccountStore(did, opts.signer, (opts.publicKeyDid ?? opts.signer.did()) as Did);
   const userSigners = new Map<string, Signer>();
 
   const app = new Hono();
