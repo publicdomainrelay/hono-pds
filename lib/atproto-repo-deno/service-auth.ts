@@ -71,7 +71,7 @@ export interface VerifyServiceAuthOptions {
   /** The expected audience DID (this PDS). */
   audDid: Did;
   /** Expected lexicon method (NSID). Required: the token must carry it and match. */
-  lxm?: string;
+  lxm: string;
   /** Optional: verify the issuer is a locally-hosted account. */
   isHostedAccount?: (did: Did) => boolean;
   /**
@@ -96,6 +96,26 @@ async function resolveIssuerKey(did: string, resolver?: AtprotoKeyResolver): Pro
   if (did.startsWith("did:key:")) return did;
   const r = resolver ?? await defaultIdResolver();
   return await r.did.resolveAtprotoKey(did);
+}
+
+/**
+ * The NSID a request targets, taken from the `/xrpc/` segment of its path -- how a
+ * caller produces the `lxm` that `verifyServiceAuthToken` REQUIRES.
+ *
+ * `null` means the path carries no XRPC method, so service auth cannot be verified
+ * for it at all: the caller must skip that path explicitly rather than hand the
+ * verifier an absent lxm, which rejects every token without saying why. An empty
+ * method (`/xrpc/`) is also `null`, not `""`, because `""` is just as unusable.
+ *
+ * The marker is SEARCHED, not anchored at index 0, so a PDS mounted under a prefix
+ * (`/pds/xrpc/com.atproto.repo.createRecord`) still yields the method.
+ */
+export function xrpcLxmFromPath(path: string): string | null {
+  const marker = "/xrpc/";
+  const at = path.indexOf(marker);
+  if (at < 0) return null;
+  const lxm = path.slice(at + marker.length);
+  return lxm.length > 0 ? lxm : null;
 }
 
 export async function verifyServiceAuthToken(

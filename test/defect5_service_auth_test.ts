@@ -1,6 +1,6 @@
 import { assert, assertEquals } from "@std/assert";
 import { Secp256k1Keypair } from "@atproto/crypto";
-import { createAccountStore, signServiceAuth, signerFromKeypair, verifyServiceAuthToken } from "@publicdomainrelay/atproto-repo-deno";
+import { createAccountStore, signServiceAuth, signerFromKeypair, verifyServiceAuthToken, xrpcLxmFromPath } from "@publicdomainrelay/atproto-repo-deno";
 import type { Did, Signer } from "@publicdomainrelay/atproto-repo-abc";
 
 const LXM = "com.atproto.repo.createRecord";
@@ -134,4 +134,56 @@ Deno.test("defect5 [account-store] session tokens verify when the PDS identity i
   console.log("[account-store] validateAccessJwt =", JSON.stringify(res));
   assert(res !== null);
   assertEquals(res!.did, "did:plc:defect5user");
+});
+
+// ---------------------------------------------------------------------------
+// defect5's OTHER residual: `lxm` was required BEHAVIOURALLY -- the verifier's
+// `if (!opts.lxm || payload.lxm !== opts.lxm) return null` rejects every token
+// without it -- but it was OPTIONAL in `VerifyServiceAuthOptions`, and the one
+// production call site derived it as
+//
+//   factory.ts  path.startsWith("/xrpc/") ? path.slice("/xrpc/".length) : undefined
+//
+// So a path that did not begin with `/xrpc/` -- which is every deployment that
+// mounts this PDS under a prefix, e.g. `/pds/xrpc/...` -- handed the verifier
+// `undefined` and had EVERY service-auth token rejected, silently, falling through
+// to the legacy access-JWT path. The PDS would still mint service-auth tokens at
+// getServiceAuth and could never accept one.
+//
+// That is an availability failure, not an admission: nothing unauthorized gets
+// through, because the legacy path still validates properly. But it is defect 5's
+// own shape -- invisible today, live on any configured deployment. `lxm` is now
+// REQUIRED in the type, and the call site skips the service-auth path EXPLICITLY
+// when the path carries no method, instead of passing an absent lxm.
+// ---------------------------------------------------------------------------
+
+Deno.test("defect5-residual [type] lxm is REQUIRED on the verifier options", async () => {
+  const opts = { audDid: "did:plc:defect5typepin" as Did };
+  // @ts-expect-error -- omitting lxm must not type-check. If this directive ever
+  // stops erroring, `lxm` went optional again and the silent rejection is back.
+  const res = await verifyServiceAuthToken("a.b", opts);
+  assertEquals(res, null);
+});
+
+Deno.test("defect5-residual [lxm] an EMPTY lxm rejects every token", async () => {
+  const kp = await Secp256k1Keypair.create();
+  const did = kp.did();
+  const token = await signServiceAuth(signerFor(did, kp), { aud: did as Did, lxm: LXM });
+  const res = await verifyServiceAuthToken(token, { audDid: did as Did, lxm: "" });
+  console.log("[empty lxm] result =", JSON.stringify(res));
+  assertEquals(res, null, "an empty lxm must not behave as a wildcard");
+});
+
+Deno.test("defect5-residual [path] a root-mounted xrpc path yields the method", () => {
+  assertEquals(xrpcLxmFromPath(`/xrpc/${LXM}`), LXM);
+});
+
+Deno.test("defect5-residual [path] a PREFIX-mounted xrpc path still yields the method", () => {
+  assertEquals(xrpcLxmFromPath(`/pds/xrpc/${LXM}`), LXM);
+});
+
+Deno.test("defect5-residual [path] a path with no xrpc method yields null, never \"\"", () => {
+  assertEquals(xrpcLxmFromPath("/"), null);
+  assertEquals(xrpcLxmFromPath("/oauth/token"), null);
+  assertEquals(xrpcLxmFromPath("/xrpc/"), null, "an empty method is unusable, not a wildcard");
 });

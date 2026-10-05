@@ -6,7 +6,7 @@ import { createLogger, type LoggerInterface } from "@publicdomainrelay/logger";
 import type { Storage, Signer, Did, Sequencer, RepoApi } from "@publicdomainrelay/atproto-repo-abc";
 import { XrpcError } from "@publicdomainrelay/atproto-repo-abc";
 import { Repo } from "@publicdomainrelay/atproto-repo-deno";
-import { signServiceAuth, verifyServiceAuthToken } from "@publicdomainrelay/atproto-repo-deno";
+import { signServiceAuth, verifyServiceAuthToken, xrpcLxmFromPath } from "@publicdomainrelay/atproto-repo-deno";
 import { createAccountStore } from "@publicdomainrelay/atproto-repo-deno";
 import type { AccountStore } from "@publicdomainrelay/atproto-repo-deno";
 import type { SubscribeHandler } from "@publicdomainrelay/atproto-repo-common";
@@ -258,11 +258,14 @@ export function createRepoFactory(opts: RepoFactoryOptions): RepoFactory {
       return c.json({ error: "AuthenticationRequired", message: "valid DPoP or Bearer token required" }, 401);
     }
 
-    // Extract lxm from request path (e.g. /xrpc/com.atproto.repo.createRecord → com.atproto.repo.createRecord)
-    const path = c.req.path ?? "";
-    const lxm = path.startsWith("/xrpc/") ? path.slice("/xrpc/".length) : undefined;
-
-    const svc = await verifyServiceAuthToken(token, {
+    // Service auth is only defined for an XRPC method, and lxm is REQUIRED by the
+    // verifier. A path carrying no method therefore skips the service-auth path
+    // EXPLICITLY and falls through to the legacy access JWT -- handing the verifier
+    // an absent lxm instead would reject every token without saying why.
+    // xrpcLxmFromPath SEARCHES for the segment rather than anchoring it, so a PDS
+    // mounted under a prefix yields the method rather than falling into that skip.
+    const lxm = xrpcLxmFromPath(c.req.path ?? "");
+    const svc = lxm === null ? null : await verifyServiceAuthToken(token, {
       audDid: did,
       lxm,
       isHostedAccount: (queryDid: Did) => accountStore.getAccount(queryDid) !== undefined,

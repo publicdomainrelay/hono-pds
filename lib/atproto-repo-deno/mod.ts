@@ -9,8 +9,8 @@ export {
   verifierFromKeypair,
 } from "./signer.ts";
 
-export { signServiceAuth, verifyServiceAuthToken } from "./service-auth.ts";
-export type { ServiceAuthOptions } from "./service-auth.ts";
+export { signServiceAuth, verifyServiceAuthToken, xrpcLxmFromPath } from "./service-auth.ts";
+export type { ServiceAuthOptions, VerifyServiceAuthOptions } from "./service-auth.ts";
 
 export { Repo } from "./repo.ts";
 export { createAccountStore } from "./account-store.ts";
