@@ -53,6 +53,12 @@
       "type": "string",
       "description": "Firehose wire format: drisl (default) for binary frames, json for the string frames atproto-relay reads",
       "env": "PDS_SUBSCRIBE_REPOS_FORMAT"
+    },
+    "port-file": {
+      "type": "string",
+      "description": "File the bound TCP port is written to once listening (used with port 0)",
+      "env": "PORT_FILE",
+      "default": "./port-bound-to"
     }
   }
 }

@@ -9,12 +9,6 @@ import cliArgsEnv from "./cli-args-env.json" with { type: "json" };
 
 const defaultLog = rawStructuredLogger("hono-pds");
 
-// TLS is opt-in: with either file missing the server stays plain HTTP.
-async function tlsFromFiles(certFile: unknown, keyFile: unknown): Promise<{ cert?: string; key?: string }> {
-  if (typeof certFile !== "string" || typeof keyFile !== "string" || !certFile || !keyFile) return {};
-  return { cert: await Deno.readTextFile(certFile), key: await Deno.readTextFile(keyFile) };
-}
-
 export interface CreateFromEnvOptions {
   keyHex?: string;
   didWebServicesStr?: string;
@@ -128,8 +122,10 @@ if (import.meta.main) {
     tcp: {
       addr: options.hostname as string,
       port: options.port as number,
-      ...(await tlsFromFiles(options.tlsCertFile, options.tlsKeyFile)),
+      certFile: options.tlsCertFile as string | undefined,
+      keyFile: options.tlsKeyFile as string | undefined,
     },
+    portFile: options.portFile as string | undefined,
   });
   serve.app.route("/", repo.app as never);
 
