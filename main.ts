@@ -14,6 +14,7 @@ export interface CreateFromEnvOptions {
   didWebServicesStr?: string;
   publicHostname?: string;
   crawlersStr?: string;
+  plcDirectoryUrl?: string;
   log?: Logger;
 }
 
@@ -50,6 +51,7 @@ export async function createFromEnv(opts?: CreateFromEnvOptions): Promise<RepoFa
     didWebServices: didWebServices.length > 0 ? didWebServices : undefined,
     publicHostname: opts?.publicHostname,
     crawlers,
+    plcDirectoryUrl: opts?.plcDirectoryUrl,
     publicKeyDid: signer.did(),
     oauthServer: {
       enabled: true,
@@ -72,6 +74,7 @@ export interface StartOptions {
   didWebServicesStr?: string;
   publicHostname?: string;
   crawlersStr?: string;
+  plcDirectoryUrl?: string;
   log?: Logger;
 }
 
@@ -104,6 +107,7 @@ if (import.meta.main) {
     didWebServicesStr: options.didWebServices as string | undefined,
     publicHostname: options.publicHostname as string | undefined,
     crawlersStr: options.crawlers as string | undefined,
+    plcDirectoryUrl: options.plcDirectoryUrl as string | undefined,
     log: (lvl, msg, meta) => logger[lvl as "info" | "warn" | "error" | "debug"]?.(msg, meta),
   });
 

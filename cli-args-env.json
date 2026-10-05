@@ -33,6 +33,11 @@
       "type": "string",
       "description": "Comma-separated relay URLs to notify on writes",
       "env": "PDS_CRAWLERS"
+    },
+    "plc-directory-url": {
+      "type": "string",
+      "description": "PLC directory base URL; when set, accounts are did:plc registered here instead of did:key",
+      "env": "PDS_PLC_DIRECTORY_URL"
     }
   }
 }
