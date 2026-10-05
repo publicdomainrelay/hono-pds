@@ -48,6 +48,11 @@
       "type": "string",
       "description": "PEM private key to serve TLS with; requires tls-cert-file",
       "env": "TLS_KEY_FILE"
+    },
+    "subscribe-repos-format": {
+      "type": "string",
+      "description": "Firehose wire format: drisl (default) for binary frames, json for the string frames atproto-relay reads",
+      "env": "PDS_SUBSCRIBE_REPOS_FORMAT"
     }
   }
 }

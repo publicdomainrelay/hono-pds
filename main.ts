@@ -21,6 +21,7 @@ export interface CreateFromEnvOptions {
   publicHostname?: string;
   crawlersStr?: string;
   plcDirectoryUrl?: string;
+  subscribeReposFormatStr?: string;
   log?: Logger;
 }
 
@@ -58,6 +59,10 @@ export async function createFromEnv(opts?: CreateFromEnvOptions): Promise<RepoFa
     publicHostname: opts?.publicHostname,
     crawlers,
     plcDirectoryUrl: opts?.plcDirectoryUrl,
+    // Defaults to drisl in the factory; "json" is what atproto-relay can read,
+    // since its subscriber parses string frames and treats a binary frame as
+    // unreadable.
+    subscribeReposFormat: opts?.subscribeReposFormatStr === "json" ? "json" : undefined,
     publicKeyDid: signer.did(),
     oauthServer: {
       enabled: true,
@@ -114,6 +119,7 @@ if (import.meta.main) {
     publicHostname: options.publicHostname as string | undefined,
     crawlersStr: options.crawlers as string | undefined,
     plcDirectoryUrl: options.plcDirectoryUrl as string | undefined,
+    subscribeReposFormatStr: options.subscribeReposFormat as string | undefined,
     log: (lvl, msg, meta) => logger[lvl as "info" | "warn" | "error" | "debug"]?.(msg, meta),
   });
 
