@@ -13,8 +13,8 @@ async function createAccountAndToken(factory: ReturnType<typeof createRepoFactor
   const acct = await res.json() as { did: string; handle: string };
   const signer = factory.getUserSigner(acct.did);
   if (!signer) throw new Error("no signer for account");
-  const svcToken = await signServiceAuth(signer, { aud: pdsDid });
-  return { did: acct.did, handle: acct.handle, token: svcToken };
+  const svcTokenFor = (lxm: string) => signServiceAuth(signer, { aud: pdsDid, lxm });
+  return { did: acct.did, handle: acct.handle, svcTokenFor };
 }
 
 Deno.test("e2e createRecord returns uri+cid", async () => {
@@ -22,7 +22,7 @@ Deno.test("e2e createRecord returns uri+cid", async () => {
   const signer = signerFromKeypair(kp);
   const pdsDid = signer.did();
   const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
-  const { did, token } = await createAccountAndToken(factory, pdsDid);
+  const { did, svcTokenFor } = await createAccountAndToken(factory, pdsDid);
 
   const body = JSON.stringify({
     repo: did,
@@ -33,7 +33,14 @@ Deno.test("e2e createRecord returns uri+cid", async () => {
 
   const res = await factory.app.request(
     "/xrpc/com.atproto.repo.createRecord",
-    { method: "POST", body, headers: { "content-type": "application/json", authorization: `Bearer ${token}` } },
+    {
+      method: "POST",
+      body,
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${await svcTokenFor("com.atproto.repo.createRecord")}`,
+      },
+    },
   );
 
   assertEquals(res.status, 200);
@@ -157,15 +164,16 @@ Deno.test("e2e write cid is the record cid, not the commit cid", async () => {
   const signer = signerFromKeypair(kp);
   const factory = createRepoFactory({ storage: new MemoryStorage(), signer });
   const { did } = await createAccountAndToken(factory, signer.did());
-  // Service-auth tokens are not reusable across calls; mint one per request.
-  const authHeaders = async () => ({
+  // Service-auth tokens are not reusable across calls; mint one per request,
+  // naming the method being called (the verifier requires lxm).
+  const authHeaders = async (lxm: string) => ({
     "content-type": "application/json",
-    authorization: `Bearer ${await signServiceAuth(factory.getUserSigner(did)!, { aud: signer.did() })}`,
+    authorization: `Bearer ${await signServiceAuth(factory.getUserSigner(did)!, { aud: signer.did(), lxm })}`,
   });
 
   const created = await (await factory.app.request("/xrpc/com.atproto.repo.createRecord", {
     method: "POST",
-    headers: await authHeaders(),
+    headers: await authHeaders("com.atproto.repo.createRecord"),
     body: JSON.stringify({
       repo: did,
       collection: "com.example.record",
@@ -188,7 +196,7 @@ Deno.test("e2e write cid is the record cid, not the commit cid", async () => {
 
   const put = await (await factory.app.request("/xrpc/com.atproto.repo.putRecord", {
     method: "POST",
-    headers: await authHeaders(),
+    headers: await authHeaders("com.atproto.repo.putRecord"),
     body: JSON.stringify({
       repo: did,
       collection: "com.example.record",

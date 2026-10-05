@@ -39,7 +39,10 @@ Deno.test("[integration] POST /xrpc/com.atproto.repo.createRecord over HTTP", as
   const acct = await acctRes.json() as { did: string; handle: string };
   const acctSigner = factory.getUserSigner(acct.did);
   if (!acctSigner) throw new Error("no signer for account");
-  const svcToken = await signServiceAuth(acctSigner, { aud: pdsDid });
+  const svcToken = await signServiceAuth(acctSigner, {
+    aud: pdsDid,
+    lxm: "com.atproto.repo.createRecord",
+  });
 
   const controller = new AbortController();
   const { promise: portReady, resolve: resolvePort } = Promise.withResolvers<number>();

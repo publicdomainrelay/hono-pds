@@ -15,8 +15,9 @@ async function createAccountAndToken(factory: ReturnType<typeof createRepoFactor
   const acct = await res.json() as { did: string; handle: string; accessJwt: string };
   const signer = factory.getUserSigner(acct.did);
   if (!signer) throw new Error("no signer for account");
-  // Return a token generator for fresh tokens per request (jti replay prevention)
-  const getToken = () => signServiceAuth(signer, { aud: pdsDid });
+  // Return a token generator for fresh tokens per request (jti replay prevention).
+  // lxm is required by the verifier and must name the method being called.
+  const getToken = (lxm: string) => signServiceAuth(signer, { aud: pdsDid, lxm });
   return { did: acct.did, handle: acct.handle, getToken };
 }
 
@@ -67,7 +68,7 @@ Deno.test("[conformance] createRecord returns uri and cid", async () => {
   const res = await factory.app.request("/xrpc/com.atproto.repo.createRecord", {
     method: "POST",
     body: JSON.stringify({ repo: did, collection: "app.bsky.feed.post", record: { text: "Hello", createdAt: new Date().toISOString() } }),
-    headers: authHeaders(await getToken()),
+    headers: authHeaders(await getToken("com.atproto.repo.createRecord")),
   });
   assertEquals(res.status, 200);
   const data = await res.json() as { uri: string; cid: string };
@@ -86,7 +87,7 @@ Deno.test("[conformance] createRecord defaults $type to collection name", async 
   const res = await factory.app.request("/xrpc/com.atproto.repo.createRecord", {
     method: "POST",
     body: JSON.stringify({ repo: did, collection: "com.example.record", record: { foo: "bar" } }),
-    headers: authHeaders(await getToken()),
+    headers: authHeaders(await getToken("com.atproto.repo.createRecord")),
   });
   assertEquals(res.status, 200);
   const data = await res.json() as { uri: string };
@@ -111,7 +112,7 @@ Deno.test("[conformance] createRecord getRecord round-trip preserves value", asy
   const createRes = await factory.app.request("/xrpc/com.atproto.repo.createRecord", {
     method: "POST",
     body: JSON.stringify({ repo: did, collection: "app.bsky.feed.post", record: recordValue }),
-    headers: authHeaders(await getToken()),
+    headers: authHeaders(await getToken("com.atproto.repo.createRecord")),
   });
   const createData = await createRes.json() as { uri: string; cid: string };
   const uriParts = createData.uri.split("/");
@@ -202,7 +203,7 @@ Deno.test("[conformance] deleteRecord no-ops if record does not exist", async ()
   const res = await factory.app.request("/xrpc/com.atproto.repo.deleteRecord", {
     method: "POST",
     body: JSON.stringify({ repo: did, collection: "com.example.record", rkey: "nonexistent" }),
-    headers: authHeaders(await getToken()),
+    headers: authHeaders(await getToken("com.atproto.repo.deleteRecord")),
   });
   assertEquals(res.status, 200);
 });
@@ -216,7 +217,7 @@ Deno.test("[conformance] putRecord creates if not exists, updates if exists", as
   const putRes1 = await factory.app.request("/xrpc/com.atproto.repo.putRecord", {
     method: "POST",
     body: JSON.stringify({ repo: did, collection: "app.bsky.actor.profile", rkey: "self", record: { displayName: "Alice" } }),
-    headers: authHeaders(await getToken()),
+    headers: authHeaders(await getToken("com.atproto.repo.putRecord")),
   });
   assertEquals(putRes1.status, 200);
   const putData1 = await putRes1.json() as { uri: string; cid: string };
@@ -231,7 +232,7 @@ Deno.test("[conformance] putRecord creates if not exists, updates if exists", as
   const putRes2 = await factory.app.request("/xrpc/com.atproto.repo.putRecord", {
     method: "POST",
     body: JSON.stringify({ repo: did, collection: "app.bsky.actor.profile", rkey: "self", record: { displayName: "Alice2", description: "Updated" } }),
-    headers: authHeaders(await getToken()),
+    headers: authHeaders(await getToken("com.atproto.repo.putRecord")),
   });
   assertEquals(putRes2.status, 200);
 
@@ -258,7 +259,7 @@ Deno.test("[conformance] applyWrites batch creates multiple records", async () =
         { $type: "com.atproto.repo.applyWrites#create", collection: "app.bsky.feed.post", value: { $type: "app.bsky.feed.post", text: "B", createdAt: new Date().toISOString() } },
       ],
     }),
-    headers: authHeaders(await getToken()),
+    headers: authHeaders(await getToken("com.atproto.repo.applyWrites")),
   });
   assertEquals(res.status, 200);
   const data = await res.json() as { results: Array<{ $type: string; uri: string; cid: string }> };
