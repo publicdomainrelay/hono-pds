@@ -16,6 +16,7 @@ export interface CreateFromEnvOptions {
   crawlersStr?: string;
   plcDirectoryUrl?: string;
   subscribeReposFormatStr?: string;
+  kvPath?: string;
   log?: Logger;
 }
 
@@ -30,7 +31,7 @@ export async function createFromEnv(opts?: CreateFromEnvOptions): Promise<RepoFa
   }
 
   const signer = signerFromKeypair(kp);
-  const storage = await DenoKvStorage.create();
+  const storage = await DenoKvStorage.create(opts?.kvPath || undefined);
 
   const didWebServices: Array<{ id: string; type: string }> = [];
   if (opts?.didWebServicesStr) {
@@ -114,6 +115,7 @@ if (import.meta.main) {
     crawlersStr: options.crawlers as string | undefined,
     plcDirectoryUrl: options.plcDirectoryUrl as string | undefined,
     subscribeReposFormatStr: options.subscribeReposFormat as string | undefined,
+    kvPath: options.kvPath as string | undefined,
     log: (lvl, msg, meta) => logger[lvl as "info" | "warn" | "error" | "debug"]?.(msg, meta),
   });
 

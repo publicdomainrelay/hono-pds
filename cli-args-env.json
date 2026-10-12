@@ -54,6 +54,11 @@
       "description": "Firehose wire format: drisl (default) for binary frames, json for the string frames atproto-relay reads",
       "env": "PDS_SUBSCRIBE_REPOS_FORMAT"
     },
+    "kv-path": {
+      "type": "string",
+      "description": "Deno KV store path; unset keeps Deno's default location under DENO_DIR",
+      "env": "PDS_KV_PATH"
+    },
     "port-file": {
       "type": "string",
       "description": "File the bound TCP port is written to once listening (used with port 0)",
